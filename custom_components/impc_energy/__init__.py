@@ -1,0 +1,1 @@
+"""IMPC Energy Custom Component."""

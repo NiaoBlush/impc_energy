@@ -1,0 +1,11 @@
+{
+  "codeowners": ["@NiaoBlush"],
+  "config_flow": false,
+  "dependencies": [],
+  "documentation": "https://github.com/NiaoBlush/impc_energy",
+  "domain": "impc_energy",
+  "iot_class": "calculated",
+  "name": "IMPC Energy",
+  "requirements": [],
+  "version": "1.0.0"
+}
