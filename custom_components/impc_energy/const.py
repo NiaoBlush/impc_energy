@@ -17,3 +17,5 @@ DOMAIN = "impc_energy"
 # ATTR_VIEWS_UNIQUE = "views_unique"
 
 BASE_API_URL = "http://yxwx.impc.com.cn"
+ATTR_BALANCE = "balance"
+ATTR_ACCOUNT_NUMBER = "account_number"

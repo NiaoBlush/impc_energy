@@ -1,5 +1,7 @@
 """GitHub sensor platform."""
+import datetime
 import logging
+import random
 import re
 from datetime import timedelta
 from typing import Any, Callable, Dict, Optional
@@ -9,9 +11,12 @@ import json
 import aiohttp
 # import gidgethub
 import voluptuous as vol
+
 # from aiohttp import ClientError
 
 # from gidgethub.aiohttp import GitHubAPI
+
+tz = datetime.timezone(timedelta(hours=+8))
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
@@ -47,19 +52,20 @@ from .const import (
     # ATTR_STARGAZERS,
     # ATTR_VIEWS,
     # ATTR_VIEWS_UNIQUE,
-    BASE_API_URL
+    DOMAIN,
+    ATTR_BALANCE,
+    ATTR_ACCOUNT_NUMBER
 )
 
 _LOGGER = logging.getLogger(__name__)
-# Time between updating data from GitHub
-SCAN_INTERVAL = timedelta(hours=1)
 
-CONF_ACCOUNT_NUMBER = "account_number"
+# Time between updating data
+SCAN_INTERVAL = timedelta(hours=1)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Required(CONF_ACCOUNT_NUMBER): cv.string,
-        vol.Required(ATTR_NAME): cv.string
+        vol.Required(ATTR_ACCOUNT_NUMBER): cv.string,
+        vol.Optional(ATTR_NAME): cv.string
     }
 )
 
@@ -72,11 +78,17 @@ async def async_setup_platform(
 ) -> None:
     """Set up the sensor platform."""
     session = async_get_clientsession(hass)
-    # github = GitHubAPI(session, "requester", oauth_token=config[CONF_ACCESS_TOKEN])
-    # sensors = [GitHubRepoSensor(github, repo) for repo in config[CONF_REPOS]]
-    energy_api = EnergyAPI(session, config[CONF_ACCOUNT_NUMBER])
-    # addr = energy_api.get_basic()["name"]
-    sensors = [ImpcBalanceSensor(energy_api, config[ATTR_NAME])]
+    energy_api = EnergyAPI(session, config[ATTR_ACCOUNT_NUMBER])
+
+    basic_info = await energy_api.get_basic()
+    account_name = basic_info[ATTR_NAME]
+    energy_api.set_account_name(account_name)
+    name_in_entity = config[ATTR_NAME] if config.__contains__(ATTR_NAME) else account_name
+
+    sensors = []
+    sensors.append(ImpcBalanceSensor(energy_api, name_in_entity))
+    # sensors.append(MyMonthlyChartSensor())
+
     async_add_entities(sensors, update_before_add=True)
 
 
@@ -84,11 +96,16 @@ class ImpcBalanceSensor(Entity):
     def __init__(self, energy_api: EnergyAPI, name):
         super().__init__()
 
-        self.energy_api = energy_api
-        self._name = name
+        self._energy_api = energy_api
+        self._name = f"{name}_电费余额"
         self._state = None
-        self._available = True
-        self.attrs: Dict[str, Any] = {CONF_ACCOUNT_NUMBER: self.energy_api.account_number}
+        self._available = False
+        self._data = None
+        self._attrs: Dict[str, Any] = {
+            "户名": energy_api.account_name,
+            "户号": energy_api.account_number,
+            "说明": "查询余额为结算系统余额=上月度结转电费+本月缴纳电费。实际电费余额以表计显示为准"
+        }
 
     @property
     def name(self) -> str:
@@ -96,9 +113,8 @@ class ImpcBalanceSensor(Entity):
         return self._name
 
     @property
-    def unique_id(self) -> str:
-        """Return the unique ID of the sensor."""
-        return self.energy_api.account_number
+    def entity_id(self) -> str:
+        return f"sensor.{DOMAIN}_{self._energy_api.account_number}_{ATTR_BALANCE}"
 
     @property
     def available(self) -> bool:
@@ -110,15 +126,24 @@ class ImpcBalanceSensor(Entity):
         return self._state
 
     @property
-    def device_state_attributes(self) -> Dict[str, Any]:
-        return self.attrs
+    def data(self) -> Optional[float]:
+        return self._data
+
+    @property
+    def unit_of_measurement(self):
+        """Return the unit of measurement of the sensor."""
+        return '元'
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        return self._attrs
 
     async def async_update(self):
         try:
 
-            basic_data = await self.energy_api.get_basic()
-            self.attrs["ttttattr"] = basic_data
-            self._state = basic_data["balance"]
+            basic_data = await self._energy_api.get_basic()
+            self._state = self._data = basic_data[ATTR_BALANCE]
+            self._attrs["last_query"] = datetime.datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
             self._available = True
 
         except aiohttp.ClientError:
