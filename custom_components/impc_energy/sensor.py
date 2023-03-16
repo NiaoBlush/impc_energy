@@ -1,24 +1,16 @@
 """GitHub sensor platform."""
 import datetime
 import logging
-import random
-import re
+
 from datetime import timedelta
 from typing import Any, Callable, Dict, Optional
-from urllib import parse
-import json
 
 import aiohttp
 import voluptuous as vol
 
-from homeassistant import config_entries, core
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
-    ATTR_NAME,
-    CONF_ACCESS_TOKEN,
-    CONF_NAME,
-    CONF_PATH,
-    CONF_URL
+    ATTR_NAME
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import homeassistant.helpers.config_validation as cv
@@ -31,21 +23,6 @@ from homeassistant.helpers.typing import (
 from .energy_api import EnergyAPI
 
 from .const import (
-    # ATTR_CLONES,
-    # ATTR_CLONES_UNIQUE,
-    # ATTR_FORKS,
-    # ATTR_LATEST_COMMIT_MESSAGE,
-    # ATTR_LATEST_COMMIT_SHA,
-    # ATTR_LATEST_OPEN_ISSUE_URL,
-    # ATTR_LATEST_OPEN_PULL_REQUEST_URL,
-    # ATTR_LATEST_RELEASE_TAG,
-    # ATTR_LATEST_RELEASE_URL,
-    # ATTR_OPEN_ISSUES,
-    # ATTR_OPEN_PULL_REQUESTS,
-    # ATTR_PATH,
-    # ATTR_STARGAZERS,
-    # ATTR_VIEWS,
-    # ATTR_VIEWS_UNIQUE,
     DOMAIN,
     ATTR_BALANCE,
     ATTR_ACCOUNT_NUMBER
