@@ -99,6 +99,10 @@ class ImpcBalanceSensor(Entity):
         return self._available
 
     @property
+    def icon(self):
+        return "hass:cash-100"
+
+    @property
     def state(self) -> Optional[float]:
         return self._state
 
@@ -153,6 +157,10 @@ class ImpcHistorySensor(Entity):
     @property
     def state(self) -> Optional[float]:
         return self._state
+
+    @property
+    def icon(self):
+        return "hass:flash"
 
     # @property
     # def data(self) -> Optional[float]:

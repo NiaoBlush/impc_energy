@@ -90,7 +90,7 @@ class EnergyAPI(object):
         last_year_data = await self.get_history(this_year - 1)
 
         # last year
-        for i in range(12 - this_month + 1):
+        for i in range(this_month, 13):
             month_str = "%d%02d" % (this_year - 1, i)
             data_list.append({
                 "month": month_str,
@@ -100,7 +100,7 @@ class EnergyAPI(object):
 
         if this_month > 1:
             this_year_data = await self.get_history(this_year)
-            for i in range(this_month - 1):
+            for i in range(1, this_month):
                 month_str = "%d%02d" % (this_year, i)
                 data_list.append({
                     "month": month_str,
