@@ -1,6 +1,8 @@
 
 # 内蒙古电费查询
 
+
+
 没有找到现成能用的，就自己写一个吧。
 
 我是搞Java的，Python勉强能看懂，但是还是有些蛋疼的 (╯‵□′)╯︵┻━┻
@@ -36,6 +38,7 @@ sensor:
   - platform: impc_energy
     account_number: 01xxxxxxxx70      #户号
     name: 家庭1                       #家庭名称（可选）
+    
   - platform: impc_energy             
     account_number: 01xxxxxxxx71      
 
@@ -49,7 +52,7 @@ sensor:
 插件会为每个家庭添加两个传感器 剩余电费 与 历史
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221439.png?raw=true)
 
-电费余额是结算余额，所以理论上数值一个月才会改变一次
+电费余额是结算余额，所以理论上数值一个月才会改变一次(交了电费也可能改变，没有测试)
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221605.png?raw=true)
 
 过去12个月的历史数据（用电量与电费）放到了一个传感器里
