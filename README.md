@@ -1,6 +1,7 @@
 
 # 内蒙古电费查询
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 
 
 没有找到现成能用的，就自己写一个吧。
