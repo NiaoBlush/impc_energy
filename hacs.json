@@ -1,5 +1,7 @@
 {
   "name": "IMPC Energy",
   "render_readme": true,
-  "iot_class": "calculated"
+  "content_in_root": false,
+  "zip_release": true,
+  "filename": "impc_energy.zip"
 }
