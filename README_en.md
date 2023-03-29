@@ -20,7 +20,13 @@ Therefore, the balance is ***not real-time*** and is for reference only.
 
 ## Installation
 
-可以通过HACS或手动安装
+Can be installed through HACS or installed manually
+
+search the integration name in HACS
+
+or download the latest release from [here](https://github.com/NiaoBlush/impc_energy/releases/latest)
+
+Restart HASS after installation
 
 ## Configuration
 
@@ -47,7 +53,7 @@ account name will be used as home name (which is address for most cases) if name
 
 + restart hass
 
-# Sensors
+## Sensors
 
 The integration will add two sensors for each home, electricity account balance and history
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221439.png?raw=true)
@@ -59,7 +65,7 @@ theoretically)
 Historical data of power consumption and electricity fees for the past 12 months are put in one sensor.
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221718.png?raw=true)
 
-# Other Information
+## Other Information
 
 
 Thanks to @involute for the code in his [post](https://bbs.hassbian.com/thread-13820-1-1.html)

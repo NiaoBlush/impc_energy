@@ -22,6 +22,10 @@
 ## 安装
 
 可以通过HACS或手动安装
+从HACS中搜索插件名
+或者从[这里](https://github.com/NiaoBlush/impc_energy/releases/latest)下载最新版本
+
+安装后需要重启hass
 
 
 ## 配置
@@ -46,7 +50,7 @@ sensor:
 
 + 重启hass
 
-# 传感器
+## 传感器
 插件会为每个家庭添加两个传感器 剩余电费 与 历史
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221439.png?raw=true)
 
@@ -57,7 +61,7 @@ sensor:
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221718.png?raw=true)
 
 
-# 其他
+## 其他
 
 没有找到现成能用的，就自己写一个吧。
 
