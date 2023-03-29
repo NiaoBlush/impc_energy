@@ -1,16 +1,12 @@
 
 # 内蒙古电费查询
 
+简体中文 | [English](https://github.com/NiaoBlush/impc_energy/README_en.md)
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 
 
-没有找到现成能用的，就自己写一个吧。
 
-我是搞Java的，Python勉强能看懂，但是还是有些蛋疼的 (╯‵□′)╯︵┻━┻
-
-这里鸣谢 @involute 大神，参考了他[帖子](https://bbs.hassbian.com/thread-13820-1-1.html)中的代码
-
-同样感谢大神@Aaron Godfrey 提供的[插件开发教程](https://aarongodfrey.dev/home%20automation/building_a_home_assistant_custom_component_part_1/)
 
 
 ## 数据说明
@@ -25,7 +21,8 @@
 
 ## 安装
 
-xxxxxxxx
+可以通过HACS或手动安装
+
 
 ## 配置
 
@@ -59,3 +56,13 @@ sensor:
 过去12个月的历史数据（用电量与电费）放到了一个传感器里
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221718.png?raw=true)
 
+
+# 其他
+
+没有找到现成能用的，就自己写一个吧。
+
+我是搞Java的，Python勉强能看懂，但是还是有些蛋疼的 (╯‵□′)╯︵┻━┻
+
+这里鸣谢 @involute 大神，参考了他[帖子](https://bbs.hassbian.com/thread-13820-1-1.html)中的代码
+
+同样感谢大神@Aaron Godfrey 提供的[插件开发教程](https://aarongodfrey.dev/home%20automation/building_a_home_assistant_custom_component_part_1/)
