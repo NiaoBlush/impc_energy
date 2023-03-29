@@ -4,9 +4,9 @@
 简体中文 | [English](https://github.com/NiaoBlush/impc_energy/README_en.md)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
+[![version](https://img.shields.io/github/manifest-json/v/NiaoBlush/impc_energy?filename=custom_components%2Fimpc_energy%2Fmanifest.json)](https://github.com/NiaoBlush/impc_energy/releases/latest)
 
-
-
+查询内蒙古住户的电费及历史电量、电费情况
 
 
 ## 数据说明
