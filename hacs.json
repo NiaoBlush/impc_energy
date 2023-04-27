@@ -1,5 +1,6 @@
 {
   "name": "IMPC Energy",
+  "country": "CN",
   "render_readme": true,
   "content_in_root": false,
   "zip_release": true,
