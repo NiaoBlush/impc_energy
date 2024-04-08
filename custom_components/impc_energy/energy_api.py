@@ -1,4 +1,5 @@
 import datetime
+import asyncio
 
 import aiohttp
 import logging
@@ -89,6 +90,13 @@ class EnergyAPI(object):
         data_list = []
         last_year_data = await self.get_history(this_year - 1)
 
+        # 本期
+        data_list.append({
+            "month": "current",
+            "bill": last_year_data["df"][-1],
+            "consumption": last_year_data["dl"][-1]
+        })
+
         # last year
         for i in range(this_month, 13):
             month_str = "%d%02d" % (this_year - 1, i)
@@ -97,6 +105,8 @@ class EnergyAPI(object):
                 "bill": last_year_data["df"][i - 1],
                 "consumption": last_year_data["dl"][i - 1]
             })
+
+        await asyncio.sleep(5)
 
         if this_month > 1:
             this_year_data = await self.get_history(this_year)

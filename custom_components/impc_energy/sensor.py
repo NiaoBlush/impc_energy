@@ -33,7 +33,7 @@ tz = datetime.timezone(timedelta(hours=+8))
 _LOGGER = logging.getLogger(__name__)
 
 # Time between updating data
-SCAN_INTERVAL = timedelta(days=1)
+SCAN_INTERVAL = timedelta(hours=8)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
