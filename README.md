@@ -38,11 +38,11 @@ sensor:
   #...
 
   - platform: impc_energy
-    account_number: 01xxxxxxxx70      #户号
+    account_number: "01xxxxxxxx70"      #户号 (使用引号括住)
     name: 家庭1                       #家庭名称（可选）
-    
-  - platform: impc_energy             
-    account_number: 01xxxxxxxx71      
+
+  - platform: impc_energy
+    account_number: "01xxxxxxxx71"
 
   #...
 ```
@@ -51,6 +51,7 @@ sensor:
 + 重启hass
 
 ## 传感器
+
 插件会为每个家庭添加两个传感器 剩余电费 与 历史
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221439.png?raw=true)
 
@@ -60,6 +61,101 @@ sensor:
 过去12个月的历史数据（用电量与电费）放到了一个传感器里
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221718.png?raw=true)
 
+## 卡片配置
+
+利用图表卡片 `apexcharts-card`
+可以实现如下的效果:
+![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20240409161911.png?raw=true)
+(x轴步长没有生效可能是这个图表库的问题)
+
+```yaml
+type: vertical-stack
+cards:
+  - type: horizontal-stack
+    cards:
+      - type: markdown
+        content: |-
+          {% set home=states.sensor.impc_energy_01xxxxxxx70_balance %}
+          ### {{home.state}}
+          当前余额(元)
+      - type: markdown
+        content: |-
+          {% set home=states.sensor.impc_energy_0110xxxxxx970_history %}
+          ### {{home.attributes['current']['bill']}}
+          本期总电费(元)
+      - type: markdown
+        content: |-
+          {% set home=states.sensor.impc_energy_011xxxxxxx970_history %}
+          ### {{home.attributes['current']['consumption']}}
+          本期总电量(kW⋅h)
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: 用电历史
+      show_states: false
+      colorize_states: true
+    graph_span: 1y
+    span:
+      offset: '-1month'
+    apex_config:
+      legend:
+        position: top
+      xaxis:
+        stepSize: 1
+        tooltip:
+          enabled: false
+        labels:
+          datetimeFormatter:
+            year: ''
+            month: M月
+      tooltip:
+        x:
+          format: yyyy年M月
+    series:
+      - name: 历史电量
+        entity: sensor.impc_energy_01xxxxxxxxx70_history
+        type: column
+        color: 3498DB
+        unit: kW⋅h
+        show:
+          datalabels: false
+          legend_value: false
+        data_generator: |
+          const data=[];
+          const attributes=entity.attributes;
+          for(let item in attributes){
+            if(item.length==6&&item.startsWith("20")){
+              //202403
+              const timeStr=`${item.slice(0, 4)}-${item.slice(-2)}-01T00:00:00`;
+              const dataObj=new Date(timeStr);
+              data.push([dataObj.getTime(),attributes[item]["consumption"]]);
+            }
+          }
+          //console.log("data1", data);
+          return data;
+      - name: 历史电费
+        entity: sensor.impc_energy_011xxxxxx970_history
+        color: FF9F0b
+        unit: 元
+        extend_to: false
+        show:
+          datalabels: false
+          legend_value: false
+        data_generator: |
+          const data=[];
+          const attributes=entity.attributes;
+          for(let item in attributes){
+            if(item.length==6&&item.startsWith("20")){
+              //202403
+              const timeStr=`${item.slice(0, 4)}-${item.slice(-2)}-01T00:00:00`;
+              const dataObj=new Date(timeStr);
+              data.push([dataObj.getTime(),attributes[item]["bill"]]);
+            }
+          }
+          //console.log("data2", data);
+          return data;
+
+```
 
 ## 其他
 
@@ -69,4 +165,5 @@ sensor:
 
 这里鸣谢 @involute 大神，参考了他[帖子](https://bbs.hassbian.com/thread-13820-1-1.html)中的代码
 
-同样感谢大神@Aaron Godfrey 提供的[插件开发教程](https://aarongodfrey.dev/home%20automation/building_a_home_assistant_custom_component_part_1/)
+同样感谢大神@Aaron Godfrey
+提供的[插件开发教程](https://aarongodfrey.dev/home%20automation/building_a_home_assistant_custom_component_part_1/)
