@@ -20,6 +20,10 @@ from homeassistant.helpers.typing import (
     DiscoveryInfoType,
     HomeAssistantType
 )
+from homeassistant.components.recorder.statistics import (
+    async_add_external_statistics,
+    get_last_statistics,
+)
 from .energy_api import EnergyAPI
 
 from .const import (
@@ -69,6 +73,29 @@ async def async_setup_platform(
     sensors = await get_sensors(energy_api, config)
 
     async_add_entities(sensors, update_before_add=True)
+
+    metadata = {
+        "source": DOMAIN,
+        "statistic_id": f"{DOMAIN}:energy_consumption",
+        "unit_of_measurement": "kWh",
+        "has_mean": False,
+        "has_sum": True,
+    }
+    statistics = [
+        {'start': datetime.datetime(2023, 1, 1, 0, 0), 'sum': 200},
+        {'start': datetime.datetime(2023, 2, 1, 0, 0), 'sum': 209},
+        {'start': datetime.datetime(2023, 3, 1, 0, 0), 'sum': 241},
+        {'start': datetime.datetime(2023, 4, 1, 0, 0), 'sum': 377},
+        {'start': datetime.datetime(2023, 5, 1, 0, 0), 'sum': 262},
+        {'start': datetime.datetime(2023, 6, 1, 0, 0), 'sum': 187},
+        {'start': datetime.datetime(2023, 7, 1, 0, 0), 'sum': 124},
+        {'start': datetime.datetime(2023, 8, 1, 0, 0), 'sum': 313},
+        {'start': datetime.datetime(2023, 9, 1, 0, 0), 'sum': 207},
+        {'start': datetime.datetime(2023, 10, 1, 0, 0), 'sum': 300},
+        {'start': datetime.datetime(2023, 11, 1, 0, 0), 'sum': 118},
+        {'start': datetime.datetime(2023, 12, 1, 0, 0), 'sum': 289}
+    ]
+    async_add_external_statistics(hass, metadata, statistics)
 
 
 class ImpcBalanceSensor(Entity):
@@ -183,6 +210,8 @@ class ImpcHistorySensor(Entity):
                 }
 
             self._available = True
+
+
 
         except aiohttp.ClientError:
             self._available = False
