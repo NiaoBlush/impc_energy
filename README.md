@@ -65,7 +65,8 @@ sensor:
 
 利用图表卡片 `apexcharts-card`
 可以实现如下的效果:
-![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20240409161911.png?raw=true)
+![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20240409174425.png?raw=true)
+
 (x轴步长没有生效可能是这个图表库的问题)
 
 ```yaml
