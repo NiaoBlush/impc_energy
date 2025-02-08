@@ -26,7 +26,9 @@ class EnergyAPI(object):
     header = {
         "Accept": "application/json, text/plain, */*",
         "appId": "wxb388e571f24e1111",
-        "Accept-Language": "zh-CN,zh"
+        "Accept-Language": "zh-CN,zh",
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.55(0x1800372d) NetType/WIFI Language/zh_CN",
+        "qdly": "WECHAT"
     }
 
     def set_account_name(self, account_name):
@@ -41,6 +43,23 @@ class EnergyAPI(object):
         return self._account_name
 
     async def get_basic(self):
+        """
+        获取基本信息 (dldfList)
+        包括zmye及账户名(未脱敏住址)
+
+        res:
+        {
+            "code": 0,
+            "data": {
+                "qjwyj": "0",
+                "zmye": "888.88",
+                "d_date": "2025-02-08 11:06:54",
+                "name": "某小区某号楼某单元某层东",
+                "qjdf": "0"
+            }
+        }
+
+        """
         param = {
             "yhdabh": self._account_number
         }
@@ -62,6 +81,65 @@ class EnergyAPI(object):
             _LOGGER.error("获取基本信息错误, res: [{}]".format(data))
 
     async def get_history(self, year: int):
+        """
+        获取电量电费列表
+        :param year: 某年
+        res:
+        {
+            "code": 0,
+            "data": {
+                "df": [
+                    85.9,
+                    91.94,
+                    80.78,
+                    110.08,
+                    82.64,
+                    84.5,
+                    118.12,
+                    97.52,
+                    103.57,
+                    89.62,
+                    96.59,
+                    136.71,
+                    0
+                ],
+                "dl": [
+                    203,
+                    216,
+                    192,
+                    255,
+                    196,
+                    200,
+                    268,
+                    228,
+                    241,
+                    211,
+                    226,
+                    294,
+                    0
+                ],
+                "bqdl": "0.00",
+                "yf": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    12
+                ],
+                "bqdf": "0.00"
+            }
+        }
+
+
+        """
 
         param = {
             "yhdabh": self._account_number,
