@@ -17,8 +17,10 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.typing import (
     ConfigType,
-    DiscoveryInfoType,
-    HomeAssistantType
+    DiscoveryInfoType
+)
+from homeassistant.core import (
+    HomeAssistant
 )
 from .energy_api import EnergyAPI
 
@@ -57,7 +59,7 @@ async def get_sensors(energy_api: EnergyAPI, config: ConfigType):
 
 
 async def async_setup_platform(
-        hass: HomeAssistantType,
+        hass: HomeAssistant,
         config: ConfigType,
         async_add_entities: Callable,
         discovery_info: Optional[DiscoveryInfoType] = None,
