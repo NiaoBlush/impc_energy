@@ -70,15 +70,16 @@ class EnergyAPI(object):
 
         try:
             data = await response.json(encoding="utf-8")
-            _LOGGER.info("基本信息: [{}]".format(data))
+            _LOGGER.info("基本信息(dldfList): [{}]".format(data))
 
             return {
                 ATTR_NAME: data["data"]["name"],
-                ATTR_BALANCE: float(data["data"]["zmye"])
+                # 余额采用get_basic_new中的syje, 所以这个方法不再返回剩余金额
+                # ATTR_BALANCE: float(data["data"]["zmye"])
             }
         except:
             data = await response.text()
-            _LOGGER.error("获取基本信息错误, res: [{}]".format(data))
+            _LOGGER.error("获取基本信息(dldfList)错误, res: [{}]".format(data))
 
     async def get_history(self, year: int):
         """
@@ -197,3 +198,46 @@ class EnergyAPI(object):
                 })
 
         return data_list
+
+    async def get_basic_new(self):
+        """
+        获取基本信息 (queryDfInfoNew)
+        包含syje与脱敏地址
+
+        res:
+        {
+            "code": 0,
+            "data": {
+                "gsbh": "01",
+                "limitFlag": "02",
+                "qjwyj": "0.0",
+                "syje": "888.88",
+                "name": "某****某层东",
+                "addr": "******某层东",
+                "khxzmc": "城镇居民生活用电",
+                "sfyxjf": "01"
+            }
+        }
+
+        :return:
+        """
+
+        param = {
+            "yhdabh": self._account_number
+        }
+        response = await self.session.get(BASE_API_URL + "/api/hlwyy/business-jffw/znjf/queryDfInfoNew",
+                                          timeout=EnergyAPI.timeout,
+                                          params=param,
+                                          headers=EnergyAPI.header)
+
+        try:
+            data = await response.json(encoding="utf-8")
+            _LOGGER.info("基本信息(queryDfInfoNew): [{}]".format(data))
+
+            return {
+                # 这个接口返回的地址是脱敏后的地址, 所以方法不返回地址, 采用get_basic返回的地址
+                ATTR_BALANCE: float(data["data"]["syje"])
+            }
+        except:
+            data = await response.text()
+            _LOGGER.error("获取基本信息(queryDfInfoNew)错误, res: [{}]".format(data))

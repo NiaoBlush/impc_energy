@@ -123,7 +123,7 @@ class ImpcBalanceSensor(Entity):
     async def async_update(self):
         try:
 
-            basic_data = await self._energy_api.get_basic()
+            basic_data = await self._energy_api.get_basic_new()
             self._state = self._data = basic_data[ATTR_BALANCE]
             self._attrs["last_query"] = datetime.datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
             self._available = True
