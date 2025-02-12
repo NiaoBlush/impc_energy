@@ -74,14 +74,14 @@ class ImpcBalanceSensor(Entity):
         super().__init__()
 
         self._energy_api = energy_api
-        self._name = f"{energy_api.account_name}_电费余额"
+        self._name = f"电费余额_{energy_api.account_name}"
         self._state = None
         self._available = False
         self._data = None
         self._attrs: Dict[str, Any] = {
             ATTR_ACCOUNT_NAME: energy_api.account_name,
             ATTR_ACCOUNT_NUMBER: energy_api.account_number,
-            ATTR_DESC: "查询余额为结算系统余额=上月度结转电费+本月缴纳电费。实际电费余额以表计显示为准"
+            ATTR_DESC: "查询余额为结算系统余额=上月度结转电费+本月缴纳电费。实际电费余额以表计显示为准。"
         }
 
     @property
@@ -135,7 +135,7 @@ class ImpcHistorySensor(Entity):
         super().__init__()
 
         self._energy_api = energy_api
-        self._name = f"{energy_api.account_name}_历史"
+        self._name = f"历史电费_{energy_api.account_name}"
         self._state = None
         self._available = False
         self._data = None
