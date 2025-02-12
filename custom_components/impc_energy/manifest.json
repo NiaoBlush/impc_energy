@@ -1,12 +1,14 @@
 {
   "domain": "impc_energy",
   "name": "IMPC Energy",
-  "codeowners": ["@NiaoBlush"],
-  "config_flow": false,
+  "codeowners": [
+    "@NiaoBlush"
+  ],
+  "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/NiaoBlush/impc_energy",
-  "iot_class": "calculated",
+  "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/NiaoBlush/impc_energy/issues",
   "requirements": [],
-  "version": "0.2.0"
+  "version": "1.0.0"
 }

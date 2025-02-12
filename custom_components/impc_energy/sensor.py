@@ -6,14 +6,12 @@ from datetime import timedelta
 from typing import Any, Callable, Dict, Optional
 
 import aiohttp
-import voluptuous as vol
-
-from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
     ATTR_NAME
 )
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.typing import (
     ConfigType,
@@ -27,7 +25,12 @@ from .energy_api import EnergyAPI
 from .const import (
     DOMAIN,
     ATTR_BALANCE,
-    ATTR_ACCOUNT_NUMBER
+    ATTR_HISTORY,
+    ATTR_ACCOUNT_NUMBER,
+    ATTR_ACCOUNT_NAME,
+    ATTR_DESC,
+    ATTR_BILL,
+    ATTR_CONSUMPTION
 )
 
 tz = datetime.timezone(timedelta(hours=+8))
@@ -37,12 +40,30 @@ _LOGGER = logging.getLogger(__name__)
 # Time between updating data
 SCAN_INTERVAL = timedelta(hours=8)
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {
-        vol.Required(ATTR_ACCOUNT_NUMBER): cv.string,
-        vol.Optional(ATTR_NAME): cv.string
-    }
-)
+
+async def async_setup_entry(
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        async_add_entities: AddEntitiesCallback,
+) -> None:
+    """通过配置条目设置传感器平台。"""
+    _LOGGER.debug("Setting up sensor for entry: %s", entry.entry_id)
+
+    # 获取账户信息
+    data = hass.data[DOMAIN].get(entry.entry_id, {})
+    account_number = data.get(ATTR_ACCOUNT_NUMBER)
+    account_name = data.get(ATTR_ACCOUNT_NAME)
+
+    if not account_number:
+        _LOGGER.error("Missing account_number in entry data")
+        return
+
+    # 创建 EnergyAPI 实例
+    session = async_get_clientsession(hass)
+    energy_api = EnergyAPI(session, account_number)
+    sensors = await get_sensors(energy_api, account_name)
+
+    async_add_entities(sensors, update_before_add=True)
 
 
 async def get_sensors(energy_api: EnergyAPI, config: ConfigType):
@@ -83,9 +104,9 @@ class ImpcBalanceSensor(Entity):
         self._available = False
         self._data = None
         self._attrs: Dict[str, Any] = {
-            "account_name": energy_api.account_name,
-            "account_number": energy_api.account_number,
-            "desc": "查询余额为结算系统余额=上月度结转电费+本月缴纳电费。实际电费余额以表计显示为准"
+            ATTR_ACCOUNT_NAME: energy_api.account_name,
+            ATTR_ACCOUNT_NUMBER: energy_api.account_number,
+            ATTR_DESC: "查询余额为结算系统余额=上月度结转电费+本月缴纳电费。实际电费余额以表计显示为准"
         }
 
     @property
@@ -93,8 +114,9 @@ class ImpcBalanceSensor(Entity):
         return self._name
 
     @property
-    def entity_id(self) -> str:
-        return f"sensor.{DOMAIN}_{self._energy_api.account_number}_{ATTR_BALANCE}"
+    def unique_id(self) -> str:
+        # 使用 account_number 生成唯一标识符
+        return f"{DOMAIN}_{self._energy_api.account_number}_{ATTR_BALANCE}"
 
     @property
     def available(self) -> bool:
@@ -149,8 +171,9 @@ class ImpcHistorySensor(Entity):
         return self._name
 
     @property
-    def entity_id(self) -> str:
-        return f"sensor.{DOMAIN}_{self._energy_api.account_number}_history"
+    def unique_id(self) -> str:
+        # 使用 account_number 生成唯一标识符
+        return f"{DOMAIN}_{self._energy_api.account_number}_{ATTR_HISTORY}"
 
     @property
     def available(self) -> bool:
@@ -164,10 +187,6 @@ class ImpcHistorySensor(Entity):
     def icon(self):
         return "hass:flash"
 
-    # @property
-    # def data(self) -> Optional[float]:
-    #     return self._data
-
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         return self._attrs
@@ -180,12 +199,11 @@ class ImpcHistorySensor(Entity):
             self._attrs = {}
             for item in history_data:
                 self._attrs[item["month"]] = {
-                    "bill": item["bill"],
-                    "consumption": item["consumption"]
+                    ATTR_BILL: item["bill"],
+                    ATTR_CONSUMPTION: item["consumption"]
                 }
 
             self._available = True
-
 
         except aiohttp.ClientError:
             self._available = False
