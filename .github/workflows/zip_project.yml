@@ -1,0 +1,26 @@
+name: 打包 Impc Energy 文件夹
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  zip_folder:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 打包 custom_components/impc_energy 文件夹
+        run: |
+          zip -r impc_energy.zip custom_components/impc_energy
+
+      - name: 提交并推送 zip 文件
+        uses: EndBug/add-and-commit@v9
+        with:
+          author_name: 'GitHub Actions'
+          author_email: 'actions@github.com'
+          message: '添加 impc_energy.zip'
+          add: 'impc_energy.zip'
