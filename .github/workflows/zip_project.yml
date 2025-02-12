@@ -15,7 +15,7 @@ jobs:
 
       - name: 打包 custom_components/impc_energy 文件夹
         run: |
-          zip -r impc_energy.zip custom_components/impc_energy
+          zip -rj dist/impc_energy.zip custom_components/impc_energy/*
 
       - name: 提交并推送 zip 文件
         env:
