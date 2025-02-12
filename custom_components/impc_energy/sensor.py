@@ -30,7 +30,8 @@ from .const import (
     ATTR_ACCOUNT_NAME,
     ATTR_DESC,
     ATTR_BILL,
-    ATTR_CONSUMPTION
+    ATTR_CONSUMPTION,
+    ATTR_MONTH
 )
 
 tz = datetime.timezone(timedelta(hours=+8))
@@ -198,9 +199,9 @@ class ImpcHistorySensor(Entity):
             history_data = await self._energy_api.get_history_data()
             self._attrs = {}
             for item in history_data:
-                self._attrs[item["month"]] = {
-                    ATTR_BILL: item["bill"],
-                    ATTR_CONSUMPTION: item["consumption"]
+                self._attrs[item[ATTR_MONTH]] = {
+                    ATTR_BILL: item[ATTR_BILL],
+                    ATTR_CONSUMPTION: item[ATTR_CONSUMPTION]
                 }
 
             self._available = True

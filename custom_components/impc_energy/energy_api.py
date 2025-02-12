@@ -9,7 +9,10 @@ from homeassistant.const import (
 )
 from .const import (
     BASE_API_URL,
-    ATTR_BALANCE
+    ATTR_BALANCE,
+    ATTR_BILL,
+    ATTR_CONSUMPTION,
+    ATTR_MONTH
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -171,18 +174,18 @@ class EnergyAPI(object):
 
         # 本期
         data_list.append({
-            "month": "current",
-            "bill": last_year_data["df"][-1],
-            "consumption": last_year_data["dl"][-1]
+            ATTR_MONTH: "current",
+            ATTR_BILL: last_year_data["df"][-1],
+            ATTR_CONSUMPTION: last_year_data["dl"][-1]
         })
 
         # last year
         for i in range(this_month, 13):
             month_str = "%d%02d" % (this_year - 1, i)
             data_list.append({
-                "month": month_str,
-                "bill": last_year_data["df"][i - 1],
-                "consumption": last_year_data["dl"][i - 1]
+                ATTR_MONTH: month_str,
+                ATTR_BILL: last_year_data["df"][i - 1],
+                ATTR_CONSUMPTION: last_year_data["dl"][i - 1]
             })
 
         await asyncio.sleep(5)
@@ -192,9 +195,9 @@ class EnergyAPI(object):
             for i in range(1, this_month):
                 month_str = "%d%02d" % (this_year, i)
                 data_list.append({
-                    "month": month_str,
-                    "bill": this_year_data["df"][i - 1],
-                    "consumption": this_year_data["dl"][i - 1]
+                    ATTR_MONTH: month_str,
+                    ATTR_BILL: this_year_data["df"][i - 1],
+                    ATTR_CONSUMPTION: this_year_data["dl"][i - 1]
                 })
 
         return data_list
