@@ -18,6 +18,8 @@ jobs:
           zip -r impc_energy.zip custom_components/impc_energy
 
       - name: 提交并推送 zip 文件
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: EndBug/add-and-commit@v9
         with:
           author_name: 'GitHub Actions'
