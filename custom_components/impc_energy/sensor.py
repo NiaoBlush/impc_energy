@@ -3,17 +3,13 @@ import datetime
 import logging
 
 from datetime import timedelta
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.typing import (
-    ConfigType,
-    DiscoveryInfoType
-)
 from homeassistant.core import (
     HomeAssistant
 )
@@ -71,21 +67,6 @@ async def get_sensors(energy_api: EnergyAPI):
     sensors.append(ImpcHistorySensor(energy_api))
 
     return sensors
-
-
-async def async_setup_platform(
-        hass: HomeAssistant,
-        config: ConfigType,
-        async_add_entities: Callable,
-        discovery_info: Optional[DiscoveryInfoType] = None,
-) -> None:
-    """Set up the sensor platform."""
-    session = async_get_clientsession(hass)
-    energy_api = EnergyAPI(session, config[ATTR_ACCOUNT_NUMBER])
-
-    sensors = await get_sensors(energy_api, config)
-
-    async_add_entities(sensors, update_before_add=True)
 
 
 class ImpcBalanceSensor(Entity):
