@@ -25,5 +25,5 @@ jobs:
         with:
           author_name: 'GitHub Actions'
           author_email: 'actions@github.com'
-          message: '添加 impc_energy.zip'
-          add: 'impc_energy.zip'
+          message: '添加 dist/impc_energy.zip'
+          add: 'dist/impc_energy.zip'
