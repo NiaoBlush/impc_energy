@@ -17,14 +17,16 @@ from .energy_api import EnergyAPI
 
 from .const import (
     DOMAIN,
-    ATTR_BALANCE,
-    ATTR_HISTORY,
-    ATTR_ACCOUNT_NUMBER,
     ATTR_ACCOUNT_NAME,
-    ATTR_DESC,
+    ATTR_ACCOUNT_NUMBER,
+    ATTR_BALANCE,
     ATTR_BILL,
     ATTR_CONSUMPTION,
-    ATTR_MONTH
+    ATTR_CURRENT,
+    ATTR_DESC,
+    ATTR_HISTORY,
+    ATTR_MONTH,
+    CONST_CURRENCY_YUAN
 )
 
 tz = datetime.timezone(timedelta(hours=+8))
@@ -111,7 +113,7 @@ class ImpcBalanceSensor(Entity):
 
     @property
     def unit_of_measurement(self):
-        return '元'
+        return CONST_CURRENCY_YUAN
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
@@ -163,20 +165,28 @@ class ImpcHistorySensor(Entity):
         return "hass:flash"
 
     @property
+    def unit_of_measurement(self):
+        return CONST_CURRENCY_YUAN
+
+    @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         return self._attrs
 
     async def async_update(self):
         try:
 
-            self._state = "history"
             history_data = await self._energy_api.get_history_data()
             self._attrs = {}
-            for item in history_data:
+            for item in history_data[ATTR_HISTORY]:
                 self._attrs[item[ATTR_MONTH]] = {
                     ATTR_BILL: item[ATTR_BILL],
                     ATTR_CONSUMPTION: item[ATTR_CONSUMPTION]
                 }
+            self._attrs[ATTR_CURRENT] = {
+                ATTR_BILL: history_data[ATTR_CURRENT][ATTR_BILL],
+                ATTR_CONSUMPTION: history_data[ATTR_CURRENT][ATTR_CONSUMPTION]
+            }
+            self._state = history_data[ATTR_CURRENT][ATTR_BILL]
 
             self._available = True
 

@@ -12,7 +12,9 @@ from .const import (
     ATTR_BALANCE,
     ATTR_BILL,
     ATTR_CONSUMPTION,
-    ATTR_MONTH
+    ATTR_MONTH,
+    ATTR_HISTORY,
+    ATTR_CURRENT
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -156,7 +158,7 @@ class EnergyAPI(object):
 
         try:
             data = await response.json(encoding="utf-8")
-            _LOGGER.info("历史数据: [{}]".format(data))
+            _LOGGER.info(f"历史数据, year: [{year}], data: [{data}]")
 
             return data["data"]
         except:
@@ -171,13 +173,6 @@ class EnergyAPI(object):
 
         data_list = []
         last_year_data = await self.get_history(this_year - 1)
-
-        # 本期
-        data_list.append({
-            ATTR_MONTH: "current",
-            ATTR_BILL: last_year_data["df"][-1],
-            ATTR_CONSUMPTION: last_year_data["dl"][-1]
-        })
 
         # last year
         for i in range(this_month, 13):
@@ -200,7 +195,24 @@ class EnergyAPI(object):
                     ATTR_CONSUMPTION: this_year_data["dl"][i - 1]
                 })
 
-        return data_list
+        # 本期电费电量
+        if this_month == 1:
+            current = {
+                ATTR_MONTH: ATTR_CURRENT,
+                ATTR_BILL: last_year_data["bqdf"],
+                ATTR_CONSUMPTION: last_year_data["bqdl"]
+            }
+        else:
+            current = {
+                ATTR_MONTH: ATTR_CURRENT,
+                ATTR_BILL: this_year_data["bqdf"],
+                ATTR_CONSUMPTION: this_year_data["bqdl"]
+            }
+
+        return {
+            ATTR_HISTORY: data_list,
+            ATTR_CURRENT: current
+        }
 
     async def get_basic_new(self):
         """
