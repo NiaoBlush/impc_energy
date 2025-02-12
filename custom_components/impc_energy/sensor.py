@@ -6,9 +6,6 @@ from datetime import timedelta
 from typing import Any, Callable, Dict, Optional
 
 import aiohttp
-from homeassistant.const import (
-    ATTR_NAME
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -62,20 +59,16 @@ async def async_setup_entry(
     # 创建 EnergyAPI 实例
     session = async_get_clientsession(hass)
     energy_api = EnergyAPI(session, account_number)
-    sensors = await get_sensors(energy_api, account_name)
+    energy_api.set_account_name(account_name)
+    sensors = await get_sensors(energy_api)
 
     async_add_entities(sensors, update_before_add=True)
 
 
-async def get_sensors(energy_api: EnergyAPI, config: ConfigType):
-    basic_info = await energy_api.get_basic()
-    account_name = basic_info[ATTR_NAME]
-    energy_api.set_account_name(account_name)
-    name_in_entity = config[ATTR_NAME] if config.__contains__(ATTR_NAME) else account_name
-
+async def get_sensors(energy_api: EnergyAPI):
     sensors = []
-    sensors.append(ImpcBalanceSensor(energy_api, name_in_entity))
-    sensors.append(ImpcHistorySensor(energy_api, name_in_entity))
+    sensors.append(ImpcBalanceSensor(energy_api))
+    sensors.append(ImpcHistorySensor(energy_api))
 
     return sensors
 
@@ -96,11 +89,11 @@ async def async_setup_platform(
 
 
 class ImpcBalanceSensor(Entity):
-    def __init__(self, energy_api: EnergyAPI, name):
+    def __init__(self, energy_api: EnergyAPI):
         super().__init__()
 
         self._energy_api = energy_api
-        self._name = f"{name}_电费余额"
+        self._name = f"{energy_api.account_name}_电费余额"
         self._state = None
         self._available = False
         self._data = None
@@ -157,11 +150,11 @@ class ImpcBalanceSensor(Entity):
 
 
 class ImpcHistorySensor(Entity):
-    def __init__(self, energy_api: EnergyAPI, name):
+    def __init__(self, energy_api: EnergyAPI):
         super().__init__()
 
         self._energy_api = energy_api
-        self._name = f"{name}_历史"
+        self._name = f"{energy_api.account_name}_历史"
         self._state = None
         self._available = False
         self._data = None
