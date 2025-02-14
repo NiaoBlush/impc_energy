@@ -19,7 +19,7 @@
 
 ## 安装
 
-### HACS
+### HACS (推荐)
 
 可以通过在HACS中搜索插件名`IMPC Energy`进行安装
 
@@ -49,6 +49,8 @@
 
 + 等待配置完成
 
++ 系统会自动生成实体名称, 如有需要可自行修改
+
 <details>
 <summary>旧版本迁移指南</summary>
 
@@ -63,17 +65,18 @@
 ## 传感器
 
 插件会为每个家庭添加两个传感器 剩余电费 与 历史
-![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221439.png?raw=true)
+![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/entities_created.png?raw=true)
 
 电费余额是结算余额，所以理论上数值一个月才会改变一次(交了电费也可能改变，没有测试)
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221605.png?raw=true)
 
 过去12个月的历史数据（用电量与电费）放到了一个传感器里
-![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221718.png?raw=true)
+"历史"实体中展示的数据是本期电费
+![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/history_bill.png?raw=true)
 
 ## 卡片配置
 
-利用图表卡片 `apexcharts-card`
+利用图表卡片 [apexcharts-card](https://github.com/RomRider/apexcharts-card)
 可以实现如下的效果:
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20240409174425.png?raw=true)
 

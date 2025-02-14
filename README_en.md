@@ -20,7 +20,7 @@ Therefore, the balance is ***not real-time*** and is for reference only.
 
 ## Installation
 
-### HACS
+### HACS (recommended)
 
 You can install the integration by searching for `IMPC Energy` in HACS.
 
@@ -47,6 +47,8 @@ You only need to know your account number to start the configuration.
   ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/config_helper.png?raw=true)
 + Wait for configuration to complete
 
++ The system will automatically generate entity id, which can be changed as needed.
+
 <details>
 <summary>Migration Guide for Older Versions</summary>
 If you are upgrading from an older version `v0.X.X` to `v1.X.X` or later, please note the following:
@@ -61,14 +63,16 @@ If you are upgrading from an older version `v0.X.X` to `v1.X.X` or later, please
 ## Sensors
 
 The integration will add two sensors for each home, electricity account balance and history
-![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221439.png?raw=true)
+![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/entities_created.png?raw=true)
 
 The balance is settlement balance, which will be changed every month and every time you pay your electricity fee(
 theoretically)
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221605.png?raw=true)
 
 Historical data of power consumption and electricity fees for the past 12 months are put in one sensor.
-![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221718.png?raw=true)
+
+The data displayed as the state of the "History" entity is the bill of the current period.
+![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/history_bill.png?raw=true)
 
 ## Other Information
 
