@@ -196,6 +196,8 @@ class EnergyAPI(object):
                 })
 
         # 本期电费电量
+        # "bqdf"与"bqdl"字段, 与数据列表的最后一项似乎都是本期电费电量, 但是"bqdf"与"bqdl"字段查询上一年数据时是0
+        # 这里现采用"bqdf"与"bqdl"字段, 有问题可以再改回["df"][-1]与["dl"][-1]
         if this_month == 1:
             current = {
                 ATTR_MONTH: ATTR_CURRENT,
