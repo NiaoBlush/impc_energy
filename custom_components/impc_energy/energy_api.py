@@ -9,7 +9,12 @@ from homeassistant.const import (
 )
 from .const import (
     BASE_API_URL,
-    ATTR_BALANCE
+    ATTR_BALANCE,
+    ATTR_BILL,
+    ATTR_CONSUMPTION,
+    ATTR_MONTH,
+    ATTR_HISTORY,
+    ATTR_CURRENT
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -153,7 +158,7 @@ class EnergyAPI(object):
 
         try:
             data = await response.json(encoding="utf-8")
-            _LOGGER.info("历史数据: [{}]".format(data))
+            _LOGGER.info(f"历史数据, year: [{year}], data: [{data}]")
 
             return data["data"]
         except:
@@ -169,20 +174,13 @@ class EnergyAPI(object):
         data_list = []
         last_year_data = await self.get_history(this_year - 1)
 
-        # 本期
-        data_list.append({
-            "month": "current",
-            "bill": last_year_data["df"][-1],
-            "consumption": last_year_data["dl"][-1]
-        })
-
         # last year
         for i in range(this_month, 13):
             month_str = "%d%02d" % (this_year - 1, i)
             data_list.append({
-                "month": month_str,
-                "bill": last_year_data["df"][i - 1],
-                "consumption": last_year_data["dl"][i - 1]
+                ATTR_MONTH: month_str,
+                ATTR_BILL: last_year_data["df"][i - 1],
+                ATTR_CONSUMPTION: last_year_data["dl"][i - 1]
             })
 
         await asyncio.sleep(5)
@@ -192,12 +190,31 @@ class EnergyAPI(object):
             for i in range(1, this_month):
                 month_str = "%d%02d" % (this_year, i)
                 data_list.append({
-                    "month": month_str,
-                    "bill": this_year_data["df"][i - 1],
-                    "consumption": this_year_data["dl"][i - 1]
+                    ATTR_MONTH: month_str,
+                    ATTR_BILL: this_year_data["df"][i - 1],
+                    ATTR_CONSUMPTION: this_year_data["dl"][i - 1]
                 })
 
-        return data_list
+        # 本期电费电量
+        # "bqdf"与"bqdl"字段, 与数据列表的最后一项似乎都是本期电费电量, 但是"bqdf"与"bqdl"字段查询上一年数据时是0
+        # 这里现采用"bqdf"与"bqdl"字段, 有问题可以再改回["df"][-1]与["dl"][-1]
+        if this_month == 1:
+            current = {
+                ATTR_MONTH: ATTR_CURRENT,
+                ATTR_BILL: last_year_data["bqdf"],
+                ATTR_CONSUMPTION: last_year_data["bqdl"]
+            }
+        else:
+            current = {
+                ATTR_MONTH: ATTR_CURRENT,
+                ATTR_BILL: this_year_data["bqdf"],
+                ATTR_CONSUMPTION: this_year_data["bqdl"]
+            }
+
+        return {
+            ATTR_HISTORY: data_list,
+            ATTR_CURRENT: current
+        }
 
     async def get_basic_new(self):
         """

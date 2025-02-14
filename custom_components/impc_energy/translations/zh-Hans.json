@@ -1,0 +1,14 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "内蒙电网 配置向导",
+        "description": "欢迎使用 IMPC Energy！\n\n这个集成可以获取内蒙电网中的电费余额及历史电量电费\n\n请在下方输入账户信息，点击提交完成配置。",
+        "data": {
+          "account_number": "户号",
+          "account_name": "账户名称（留空则会使用预留地址）"
+        }
+      }
+    }
+  }
+}
