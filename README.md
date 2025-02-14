@@ -1,4 +1,3 @@
-
 # 内蒙古电费查询
 
 简体中文 | [English](https://github.com/NiaoBlush/impc_energy/README_en.md)
@@ -8,47 +7,58 @@
 
 查询内蒙古住户的电费及历史电量、电费情况
 
-
 ## 数据说明
 
 数据来自内蒙古电力公司公众号
 
 根据公众号中的说法
 
->查询余额为结算系统余额=上月度结转电费+本月缴纳电费，实际电费余额以表计显示为准。
+> 查询余额为结算系统余额=上月度结转电费+本月缴纳电费，实际电费余额以表计显示为准。
 
 所以，余额***不是实时余额***，仅供参考。
 
 ## 安装
 
-可以通过HACS或手动安装
-从HACS中搜索插件名
-或者从[这里](https://github.com/NiaoBlush/impc_energy/releases/latest)下载最新版本
+### HACS
 
-安装后需要重启hass
+可以通过在HACS中搜索插件名`IMPC Energy`进行安装
 
+### 手动安装
+
+从[这里](https://github.com/NiaoBlush/impc_energy/releases/latest)下载最新版本
+
+把压缩包内容解压到`custom_components/impc_energy`文件夹下
+
+**安装后需要重启hass**
 
 ## 配置
 
 只需知道自己的户号，即可开始配置
 
-+ 在`configuration.yaml`中，增加配置：
-```yaml
-sensor:
-  #...
++ 进入 设置 -> 设备与服务 -> 添加集成(右下角)
 
-  - platform: impc_energy
-    account_number: "01xxxxxxxx70"      #户号 (使用引号括住)
-    name: 家庭1                       #家庭名称（可选）
++ 在弹出的对话框中搜索 `IMPC Energy` 并点击
 
-  - platform: impc_energy
-    account_number: "01xxxxxxxx71"
+  ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/select_integration.png?raw=true)
 
-  #...
-```
-其中`name`字段可选，如果不填写就会使用获取到的户名(多数情况下为住址)作为家庭名称
++ 在弹出的配置向导中输入户号及户名
 
-+ 重启hass
+  如果不输入户名, 则集成会尝试使用获取到的户名(多数情况下为住址)作为户名
+
+  ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/config_helper.png?raw=true)
+
++ 等待配置完成
+
+<details>
+<summary>旧版本迁移指南</summary>
+
+如果您从 `v0.X.X` 旧版本升级到 `v1.X.X` 及以上版本，可能需要注意以下事项：
+
+- 旧版本配置文件配置方式已被移除，请改用图形界面添加。
+- 由于`entity_id`与`unique_id`的问题，旧版实体与新版不兼容，需要删除旧版实体。
+- 如果无法删除旧版实体，请尝试删除旧版`IMPC Energy`集成，重启HomeAssistant，再重新安装。
+
+</details>
 
 ## 传感器
 

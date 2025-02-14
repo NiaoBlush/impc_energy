@@ -20,38 +20,43 @@ Therefore, the balance is ***not real-time*** and is for reference only.
 
 ## Installation
 
-Can be installed through HACS or installed manually
+### HACS
 
-search the integration name in HACS
+You can install the integration by searching for `IMPC Energy` in HACS.
 
-or download the latest release from [here](https://github.com/NiaoBlush/impc_energy/releases/latest)
+### Manual Installation
 
-Restart HASS after installation
+Download the latest version from [here](https://github.com/NiaoBlush/impc_energy/releases/latest)
+
+Extract the contents of the archive into the `custom_components/impc_energy` folder.
+
+**A restart of Home Assistant is required after installation.**
 
 ## Configuration
 
-you can start the configuration if you know your account number
+You only need to know your account number to start the configuration.
 
-+ add configuration in `configuration.yaml`
++ Go to Settings -> Devices & Services -> Add Integration (bottom right corner).
++ In the dialog box that appears, search for `IMPC Energy` and click.
 
-```yaml
-sensor:
-  #...
+  ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/select_integration.png?raw=true)
++ In the configuration wizard, enter your account number and optionally your home name.
+  If the account name is not provided, the integration will attempt to use the retrieved account name (which is usually the address) as the account
+  name.
 
-  - platform: impc_energy
-    account_number: 01xxxxxxxx70      #account number
-    name: home1                       #home name (optional)
+  ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/config_helper.png?raw=true)
++ Wait for configuration to complete
 
-  - platform: impc_energy
-    account_number: 01xxxxxxxx71
+<details>
+<summary>Migration Guide for Older Versions</summary>
+If you are upgrading from an older version `v0.X.X` to `v1.X.X` or later, please note the following:
 
-  #...
-```
++ The old configuration file method has been removed. Please use the graphical interface to add the integration.
++ Due to changes in entity_id and unique_id, the old entities are not compatible with the new version. You will need to delete the old entities.
++ If you cannot delete the old entities, try removing the old `IMPC Energy` integration, restarting Home Assistant, and then reinstalling the
+  integration.
 
-the `name` field is optional
-account name will be used as home name (which is address for most cases) if name field is missing.
-
-+ restart hass
+</details>
 
 ## Sensors
 
@@ -67,7 +72,7 @@ Historical data of power consumption and electricity fees for the past 12 months
 
 ## Other Information
 
-
 Thanks to @involute for the code in his [post](https://bbs.hassbian.com/thread-13820-1-1.html)
 
-Thanks to @Aaron Godfrey for his [custom component development guide](https://aarongodfrey.dev/home%20automation/building_a_home_assistant_custom_component_part_1/)
+Thanks to @Aaron Godfrey for
+his [custom component development guide](https://aarongodfrey.dev/home%20automation/building_a_home_assistant_custom_component_part_1/)
