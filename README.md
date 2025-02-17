@@ -58,6 +58,7 @@
 
 - 旧版本配置文件配置方式已被移除，请改用图形界面添加。
 - 由于`entity_id`与`unique_id`的问题，旧版实体与新版不兼容，需要删除旧版实体。
+- 需要删除配置文件中的`impc_energy`配置
 - 如果无法删除旧版实体，请尝试删除旧版`IMPC Energy`集成，重启HomeAssistant，再重新安装。
 
 </details>
