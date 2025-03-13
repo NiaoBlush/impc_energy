@@ -8,13 +8,18 @@ from Crypto.Cipher import PKCS1_v1_5
 import base64
 import json
 
+from .const import (
+    BASE_APP_API_URL
+)
+
 _LOGGER = logging.getLogger(__name__)
 tz = datetime.timezone(datetime.timedelta(hours=+8))
 
 
 class MdejAPI(object):
-    def __init__(self, session: aiohttp.ClientSession, payload):
+    def __init__(self, session: aiohttp.ClientSession, username, payload):
         self.session = session
+        self._username = username
         self._payload = payload
         self._token = None
 
@@ -69,5 +74,41 @@ MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCa4++f6RUofKGRZjbTDd3fOah6CyDb+PB8Spsp/2t1
 
         return encrypted_base64_str
 
-    def get_token(self):
-        pass
+    async def get_token(self, payload):
+        """
+        登录以获取token
+        :return:
+        """
+
+        data = {
+            "payLoad": payload,
+            "publicKey": MdejAPI.get_public_key()
+        }
+        _LOGGER.debug("开始登录app, 用户: [%s]", self._username)
+        try:
+            async with self.session.post(
+                    f"{BASE_APP_API_URL}/hlwyy/business-zhfw/account/loginNew3",
+                    timeout=MdejAPI.timeout,
+                    json=data,  # 使用 `json=` 传递数据
+                    headers=MdejAPI.header
+            ) as response:
+
+                if response.status != 200:
+                    text = await response.text()
+                    _LOGGER.error("登录失败, 用户: [%s], 状态码: [%d], 响应: [%s]", self._username, response.status, text)
+                    return None
+
+                resp_json = await response.json(encoding="utf-8")
+                token = resp_json.get("data", {}).get("token")
+
+                if not token:
+                    _LOGGER.error("登录失败, 用户: [%s], 未获取到 token, 响应: [%s]", self._username, resp_json)
+                    return None
+
+                _LOGGER.info("登录成功, 用户: [%s]", self._username)
+                self._token = token
+                return token
+
+        except Exception as e:
+            _LOGGER.error("登录请求异常, 用户: [%s], 错误: [%s]", self._username, str(e))
+            return None

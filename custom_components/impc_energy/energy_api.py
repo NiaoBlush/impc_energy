@@ -8,7 +8,7 @@ from homeassistant.const import (
     ATTR_NAME
 )
 from .const import (
-    BASE_API_URL,
+    BASE_ENERGY_API_URL,
     ATTR_BALANCE,
     ATTR_BILL,
     ATTR_CONSUMPTION,
@@ -68,7 +68,7 @@ class EnergyAPI(object):
         param = {
             "yhdabh": self._account_number
         }
-        response = await self.session.get(BASE_API_URL + "/api/hlwyy/business-jffw/dldf/dldfList",
+        response = await self.session.get(BASE_ENERGY_API_URL + "/api/hlwyy/business-jffw/dldf/dldfList",
                                           timeout=EnergyAPI.timeout,
                                           params=param,
                                           headers=EnergyAPI.header)
@@ -151,7 +151,7 @@ class EnergyAPI(object):
             "yhdabh": self._account_number,
             "fxny": year
         }
-        response = await self.session.get(BASE_API_URL + "/api/hlwyy/business-jffw/dldf/zztList",
+        response = await self.session.get(BASE_ENERGY_API_URL + "/api/hlwyy/business-jffw/dldf/zztList",
                                           timeout=EnergyAPI.timeout,
                                           params=param,
                                           headers=EnergyAPI.header)
@@ -242,7 +242,7 @@ class EnergyAPI(object):
         param = {
             "yhdabh": self._account_number
         }
-        response = await self.session.get(BASE_API_URL + "/api/hlwyy/business-jffw/znjf/queryDfInfoNew",
+        response = await self.session.get(BASE_ENERGY_API_URL + "/api/hlwyy/business-jffw/znjf/queryDfInfoNew",
                                           timeout=EnergyAPI.timeout,
                                           params=param,
                                           headers=EnergyAPI.header)

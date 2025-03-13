@@ -1,6 +1,7 @@
 DOMAIN = "impc_energy"
 
-BASE_API_URL = "http://yxwx.impc.com.cn"
+BASE_ENERGY_API_URL = "http://yxwx.impc.com.cn"
+BASE_APP_API_URL = "http://mdej.impc.com.cn"
 
 CONST_CURRENCY_YUAN = "元"
 
