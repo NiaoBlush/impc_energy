@@ -9,6 +9,8 @@
   "documentation": "https://github.com/NiaoBlush/impc_energy",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/NiaoBlush/impc_energy/issues",
-  "requirements": [],
+  "requirements": [
+    "pycryptodome==3.21.0"
+  ],
   "version": "1.0.0"
 }
