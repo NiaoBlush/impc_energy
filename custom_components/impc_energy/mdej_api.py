@@ -1,4 +1,5 @@
 # 蒙电e家api
+
 import datetime
 import aiohttp
 import logging
@@ -17,10 +18,11 @@ tz = datetime.timezone(datetime.timedelta(hours=+8))
 
 
 class MdejAPI(object):
-    def __init__(self, session: aiohttp.ClientSession, username, payload):
+    def __init__(self, session: aiohttp.ClientSession, username):
         self.session = session
         self._username = username
-        self._payload = payload
+        self._public_key = None
+        self._payload = None
         self._token = None
 
     timeout = aiohttp.ClientTimeout(total=60)
@@ -40,15 +42,61 @@ class MdejAPI(object):
         "Connection": "keep-alive"
     }
 
-    @staticmethod
-    def get_public_key():
-        return """-----BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCa4++f6RUofKGRZjbTDd3fOah6CyDb+PB8Spsp/2t1MCzHX5vJoD9E9L5U6lGOORNER4xvjRm3eTGUDEYYZS3FZqkwvIlp7EyFiAa5VNzZ+rhcZiwBJUavL6RmRVwX06s7O8IpeGprm1vz9+OTjDA1tKq0VE8dy33ziglW3ArI9wIDAQAB
------END PUBLIC KEY-----
-"""
+    async def initialize(self, username=None, pwd=None, payload=None):
+        """
+        初始化 需要手动调用
+        获取公钥, 登录
+        :return:
+        """
+        await self._get_public_key()
 
-    @staticmethod
-    def cal_payload(username, pwd):
+        if payload is None:
+            if username is None or pwd is None:
+                raise ValueError("必须提供用户名和密码，或者直接提供 payload")
+            payload = self.cal_payload(username, pwd)
+
+        self._token = await self.get_token(payload)
+
+    async def _get_public_key(self):
+        _LOGGER.debug("开始获取公钥")
+
+        try:
+            async with self.session.get(
+                    f"{BASE_APP_API_URL}/hlwyy/business-zhfw/account/key",
+                    timeout=MdejAPI.timeout,
+                    headers=MdejAPI.header
+            ) as response:
+
+                if response.status != 200:
+                    text = await response.text()
+                    _LOGGER.error("获取公钥失败, 状态码: [%d], 响应: [%s]", response.status, text)
+                    return None
+
+                resp_json = await response.json(encoding="utf-8")
+                pub_key = resp_json.get("data")
+
+                if not pub_key:
+                    _LOGGER.error("获取公钥失败, 未获取到 pub_key, 响应: [%s]", resp_json)
+                    return None
+
+                _LOGGER.info("获取公钥成功: [%s...]", pub_key[:10])
+                self._public_key = pub_key
+
+        except Exception as e:
+            _LOGGER.error("获取公钥请求异常,  错误: [%s]", str(e))
+            return None
+
+    def _get_pub_key_pem(self):
+        if not self._public_key:
+            return None
+        else:
+            return "\n".join([
+                "-----BEGIN PUBLIC KEY-----",
+                self._public_key,
+                "-----END PUBLIC KEY-----"
+            ])
+
+    def cal_payload(self, username, pwd):
         """
         计算登录时要携带的payload
         :param username: 用户名
@@ -65,11 +113,13 @@ MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCa4++f6RUofKGRZjbTDd3fOah6CyDb+PB8Spsp/2t1
         }
         plaintext = json.dumps(data_to_encrypt).encode('utf-8')
 
-        pub_key = RSA.importKey(MdejAPI.get_public_key())
+        pub_key_str = self._get_pub_key_pem()
+        pub_key = RSA.importKey(pub_key_str)
         cipher = PKCS1_v1_5.new(pub_key)
 
         encrypted_bytes = cipher.encrypt(plaintext)
         encrypted_base64_str = base64.b64encode(encrypted_bytes).decode('utf-8')
+        self._payload = encrypted_base64_str
         _LOGGER.debug("得到登录payload: %s...", encrypted_base64_str[:10])
 
         return encrypted_base64_str
@@ -82,14 +132,14 @@ MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCa4++f6RUofKGRZjbTDd3fOah6CyDb+PB8Spsp/2t1
 
         data = {
             "payLoad": payload,
-            "publicKey": MdejAPI.get_public_key()
+            "publicKey": self._public_key
         }
         _LOGGER.debug("开始登录app, 用户: [%s]", self._username)
         try:
             async with self.session.post(
                     f"{BASE_APP_API_URL}/hlwyy/business-zhfw/account/loginNew3",
                     timeout=MdejAPI.timeout,
-                    json=data,  # 使用 `json=` 传递数据
+                    json=data,
                     headers=MdejAPI.header
             ) as response:
 
