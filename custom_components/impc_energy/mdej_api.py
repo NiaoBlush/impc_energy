@@ -2,6 +2,7 @@
 
 import datetime
 import aiohttp
+import asyncio
 import logging
 
 from Crypto.PublicKey import RSA
@@ -18,11 +19,10 @@ tz = datetime.timezone(datetime.timedelta(hours=+8))
 
 
 class MdejAPI(object):
-    def __init__(self, session: aiohttp.ClientSession, username):
-        self.session = session
+    def __init__(self, username):
         self._username = username
         self._public_key = None
-        self._payload = None
+        self._login_payload = None
         self._token = None
 
     timeout = aiohttp.ClientTimeout(total=60)
@@ -42,49 +42,65 @@ class MdejAPI(object):
         "Connection": "keep-alive"
     }
 
-    async def initialize(self, username=None, pwd=None, payload=None):
+    @property
+    def login_payload(self) -> str:
+        return self._login_payload
+
+    @property
+    def token(self) -> str:
+        return self._token
+
+    async def initialize(self, username=None, pwd=None, login_payload=None, token=None):
         """
         初始化 需要手动调用
         获取公钥, 登录
+
+        使用login_payload初始化时必报错, 原因未知
         :return:
         """
         await self._get_public_key()
-
-        if payload is None:
-            if username is None or pwd is None:
-                raise ValueError("必须提供用户名和密码，或者直接提供 payload")
-            payload = self.cal_payload(username, pwd)
-
-        self._token = await self.get_token(payload)
+        if token:
+            _LOGGER.debug("使用token初始化")
+            self._token = token
+        else:
+            if login_payload is None:
+                if username is None or pwd is None:
+                    raise ValueError("必须提供用户名和密码，或者直接提供 payload")
+                _LOGGER.debug("使用用户名密码初始化")
+                login_payload = self.cal_payload(username, pwd)
+            self._login_payload = login_payload
+            _LOGGER.debug("使用login payload初始化")
+            self._token = await self.get_token(self._login_payload)
 
     async def _get_public_key(self):
         _LOGGER.debug("开始获取公钥")
 
-        try:
-            async with self.session.get(
-                    f"{BASE_APP_API_URL}/hlwyy/business-zhfw/account/key",
-                    timeout=MdejAPI.timeout,
-                    headers=MdejAPI.header
-            ) as response:
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(
+                        f"{BASE_APP_API_URL}/hlwyy/business-zhfw/account/key",
+                        timeout=MdejAPI.timeout,
+                        headers=MdejAPI.header
+                ) as response:
 
-                if response.status != 200:
-                    text = await response.text()
-                    _LOGGER.error("获取公钥失败, 状态码: [%d], 响应: [%s]", response.status, text)
-                    return None
+                    if response.status != 200:
+                        text = await response.text()
+                        _LOGGER.error("获取公钥失败, 状态码: [%d], 响应: [%s]", response.status, text)
+                        return None
 
-                resp_json = await response.json(encoding="utf-8")
-                pub_key = resp_json.get("data")
+                    resp_json = await response.json(encoding="utf-8")
+                    pub_key = resp_json.get("data")
 
-                if not pub_key:
-                    _LOGGER.error("获取公钥失败, 未获取到 pub_key, 响应: [%s]", resp_json)
-                    return None
+                    if not pub_key:
+                        _LOGGER.error("获取公钥失败, 未获取到 pub_key, 响应: [%s]", resp_json)
+                        return None
 
-                _LOGGER.info("获取公钥成功: [%s...]", pub_key[:10])
-                self._public_key = pub_key
+                    _LOGGER.info("获取公钥成功: [%s...]", pub_key[:10])
+                    self._public_key = pub_key
 
-        except Exception as e:
-            _LOGGER.error("获取公钥请求异常,  错误: [%s]", str(e))
-            return None
+            except Exception as e:
+                _LOGGER.error("获取公钥请求异常,  错误: [%s]", str(e))
+                return None
 
     def _get_pub_key_pem(self):
         if not self._public_key:
@@ -119,46 +135,55 @@ class MdejAPI(object):
 
         encrypted_bytes = cipher.encrypt(plaintext)
         encrypted_base64_str = base64.b64encode(encrypted_bytes).decode('utf-8')
-        self._payload = encrypted_base64_str
-        _LOGGER.debug("得到登录payload: %s...", encrypted_base64_str[:10])
+        _LOGGER.debug("得到登录payload: [%s...]", encrypted_base64_str[:10])
 
         return encrypted_base64_str
 
     async def get_token(self, payload):
         """
-        登录以获取token
-        :return:
+        登录以获取 token
+        这个接口不稳定, 即使是在手机上偶尔也会报500
+        :param payload: 登录请求负载
+        :return: token (str)
+        :raises Exception: 登录失败时抛出异常
         """
-
         data = {
             "payLoad": payload,
             "publicKey": self._public_key
         }
-        _LOGGER.debug("开始登录app, 用户: [%s]", self._username)
-        try:
-            async with self.session.post(
-                    f"{BASE_APP_API_URL}/hlwyy/business-zhfw/account/loginNew3",
-                    timeout=MdejAPI.timeout,
-                    json=data,
-                    headers=MdejAPI.header
-            ) as response:
+        _LOGGER.debug("开始登录 app, 用户: [%s]", self._username)
+        await asyncio.sleep(1)
 
-                if response.status != 200:
-                    text = await response.text()
-                    _LOGGER.error("登录失败, 用户: [%s], 状态码: [%d], 响应: [%s]", self._username, response.status, text)
-                    return None
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(
+                        f"{BASE_APP_API_URL}/hlwyy/business-zhfw/account/loginNew3",
+                        timeout=MdejAPI.timeout,
+                        json=data,
+                        headers=MdejAPI.header
+                ) as response:
 
-                resp_json = await response.json(encoding="utf-8")
-                token = resp_json.get("data", {}).get("token")
+                    if response.status != 200:
+                        text = await response.text()
+                        _LOGGER.error("登录失败, 用户: [%s], 状态码: [%d], 响应: [%s]", self._username, response.status, text)
+                        raise Exception(f"用户 [{self._username}] 登录失败: HTTP 状态码 {response.status}, 响应: {text}")
 
-                if not token:
-                    _LOGGER.error("登录失败, 用户: [%s], 未获取到 token, 响应: [%s]", self._username, resp_json)
-                    return None
+                    resp_json = await response.json(encoding="utf-8")
 
-                _LOGGER.info("登录成功, 用户: [%s]", self._username)
-                self._token = token
-                return token
+                    if resp_json.get("code") != 0:
+                        _LOGGER.error("登录失败, 用户: [%s], code != 0, 响应: [%s]", self._username, resp_json)
+                        raise Exception(f"用户 [{self._username}] 登录失败: code != 0, 响应: {resp_json}")
 
-        except Exception as e:
-            _LOGGER.error("登录请求异常, 用户: [%s], 错误: [%s]", self._username, str(e))
-            return None
+                    token = resp_json.get("data", {}).get("token")
+
+                    if not token:
+                        _LOGGER.error("登录失败, 用户: [%s], 未获取到 token, 响应: [%s]", self._username, resp_json)
+                        raise Exception(f"用户 [{self._username}] 登录失败: 未获取到 token, 响应: {resp_json}")
+
+                    _LOGGER.info("登录成功, 用户: [%s]", self._username)
+                    self._token = token
+                    return token
+
+            except Exception as e:
+                _LOGGER.error("登录请求异常, 用户: [%s], 错误: [%s]", self._username, str(e))
+                raise

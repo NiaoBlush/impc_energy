@@ -4,7 +4,11 @@ from homeassistant.core import HomeAssistant
 from .const import (
     DOMAIN,
     ATTR_ACCOUNT_NAME,
-    ATTR_ACCOUNT_NUMBER
+    ATTR_ACCOUNT_NUMBER,
+    ATTR_USERNAME,
+    ATTR_PASSWORD,
+    ATTR_TOKEN,
+    ATTR_LOGIN_PAYLOAD
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -17,6 +21,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     # 获取账户信息
     account_number = entry.data[ATTR_ACCOUNT_NUMBER]
     account_name = entry.data.get(ATTR_ACCOUNT_NAME)
+    app_username = entry.data.get(ATTR_USERNAME)
+    app_login_payload = entry.data.get(ATTR_LOGIN_PAYLOAD)
+    app_token = entry.data.get(ATTR_TOKEN)
 
     # 存储配置信息到 hass.data
     if DOMAIN not in hass.data:
@@ -25,6 +32,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.data[DOMAIN][entry.entry_id] = {
         ATTR_ACCOUNT_NUMBER: account_number,
         ATTR_ACCOUNT_NAME: account_name,
+        ATTR_USERNAME: app_username,
+        ATTR_LOGIN_PAYLOAD: app_login_payload,
+        ATTR_TOKEN: app_token
     }
 
     # 加载平台

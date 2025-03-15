@@ -14,11 +14,14 @@ from homeassistant.core import (
     HomeAssistant
 )
 from .energy_api import EnergyAPI
+from .mdej_api import MdejAPI
 
 from .const import (
     DOMAIN,
     ATTR_ACCOUNT_NAME,
     ATTR_ACCOUNT_NUMBER,
+    ATTR_USERNAME,
+    ATTR_TOKEN,
     ATTR_BALANCE,
     ATTR_BILL,
     ATTR_CONSUMPTION,
@@ -43,7 +46,7 @@ async def async_setup_entry(
         async_add_entities: AddEntitiesCallback,
 ) -> None:
     """通过配置条目设置传感器平台。"""
-    _LOGGER.debug("Setting up sensor for entry: %s", entry.entry_id)
+    _LOGGER.info("开始为实体设置传感器: %s", entry.entry_id)
 
     # 获取账户信息
     data = hass.data[DOMAIN].get(entry.entry_id, {})
@@ -58,15 +61,30 @@ async def async_setup_entry(
     session = async_get_clientsession(hass)
     energy_api = EnergyAPI(session, account_number)
     energy_api.set_account_name(account_name)
-    sensors = await get_sensors(energy_api)
+
+    # 获取app信息
+    app_username = data.get(ATTR_USERNAME)
+    app_token = data.get(ATTR_TOKEN)
+    # 创建 MdejAPI 实例
+    mdej_api = None
+    if app_username and app_token:
+        mdej_api = MdejAPI(app_username)
+        await mdej_api.initialize(token=app_token)
+    sensors = await get_sensors(energy_api, mdej_api)
 
     async_add_entities(sensors, update_before_add=True)
 
 
-async def get_sensors(energy_api: EnergyAPI):
+async def get_sensors(energy_api: EnergyAPI, mdej_api: MdejAPI):
     sensors = []
+
+    # 公众号数据传感器
     sensors.append(ImpcBalanceSensor(energy_api))
     sensors.append(ImpcHistorySensor(energy_api))
+
+    if mdej_api:
+        # 蒙电e家传感器
+        pass
 
     return sensors
 
