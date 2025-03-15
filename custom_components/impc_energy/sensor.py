@@ -20,16 +20,19 @@ from .const import (
     DOMAIN,
     ATTR_ACCOUNT_NAME,
     ATTR_ACCOUNT_NUMBER,
-    ATTR_USERNAME,
-    ATTR_TOKEN,
     ATTR_BALANCE,
     ATTR_BILL,
     ATTR_CONSUMPTION,
     ATTR_CURRENT,
+    ATTR_DAILY,
+    ATTR_DATE,
     ATTR_DESC,
     ATTR_HISTORY,
     ATTR_MONTH,
-    CONST_CURRENCY_YUAN
+    ATTR_TOKEN,
+    ATTR_USERNAME,
+    UNIT_CURRENCY_YUAN,
+    UNIT_KILOWATT_HOUR,
 )
 
 tz = datetime.timezone(timedelta(hours=+8))
@@ -70,8 +73,10 @@ async def async_setup_entry(
     if app_username and app_token:
         mdej_api = MdejAPI(app_username)
         await mdej_api.initialize(token=app_token)
-    sensors = await get_sensors(energy_api, mdej_api)
+        mdej_api.set_account_number(account_number)
+        mdej_api.set_account_name(account_name)
 
+    sensors = await get_sensors(energy_api, mdej_api)
     async_add_entities(sensors, update_before_add=True)
 
 
@@ -84,7 +89,7 @@ async def get_sensors(energy_api: EnergyAPI, mdej_api: MdejAPI):
 
     if mdej_api:
         # 蒙电e家传感器
-        pass
+        sensors.append(MdejDailySensor(mdej_api))
 
     return sensors
 
@@ -131,7 +136,7 @@ class ImpcBalanceSensor(Entity):
 
     @property
     def unit_of_measurement(self):
-        return CONST_CURRENCY_YUAN
+        return UNIT_CURRENCY_YUAN
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
@@ -184,7 +189,7 @@ class ImpcHistorySensor(Entity):
 
     @property
     def unit_of_measurement(self):
-        return CONST_CURRENCY_YUAN
+        return UNIT_CURRENCY_YUAN
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
@@ -210,4 +215,63 @@ class ImpcHistorySensor(Entity):
 
         except aiohttp.ClientError:
             self._available = False
-            _LOGGER.exception("Error retrieving data from IMPC.")
+            _LOGGER.exception("从IMPC获取数据失败")
+
+
+class MdejDailySensor(Entity):
+    """蒙电e家每日数据"""
+
+    def __init__(self, mdej_api: MdejAPI):
+        super().__init__()
+
+        self._mdej_api = mdej_api
+        self._name = f"每日电量_{mdej_api.account_name}"
+        self._state = None
+        self._available = False
+        self._data = None
+        self._attrs = None
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def unique_id(self) -> str:
+        # 使用 account_number 生成唯一标识符
+        return f"{DOMAIN}_{self._mdej_api.account_number}_{ATTR_DAILY}_{ATTR_CONSUMPTION}"
+
+    @property
+    def available(self) -> bool:
+        return self._available
+
+    @property
+    def state(self) -> Optional[float]:
+        return self._state
+
+    @property
+    def icon(self):
+        return "mdi:calendar-month-outline"
+
+    @property
+    def unit_of_measurement(self):
+        return UNIT_KILOWATT_HOUR
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        return self._attrs
+
+    async def async_update(self):
+        try:
+
+            daily_data = await self._mdej_api.get_daily()
+            self._attrs = {}
+            for item in daily_data:
+                self._attrs[item[ATTR_DATE]] = item[ATTR_CONSUMPTION]
+
+            self._state = daily_data[-1][ATTR_CONSUMPTION]
+
+            self._available = True
+
+        except aiohttp.ClientError:
+            self._available = False
+            _LOGGER.exception("从MDEJ获取数据失败")
