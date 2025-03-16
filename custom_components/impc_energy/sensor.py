@@ -100,6 +100,8 @@ class ImpcBalanceSensor(Entity):
 
         self._energy_api = energy_api
         self._name = f"电费余额_{energy_api.account_name}"
+        self._attr_unique_id = f"{DOMAIN}_{self._energy_api.account_number}_{ATTR_BALANCE}"
+        self.entity_id = f"sensor.{self._attr_unique_id}"
         self._state = None
         self._available = False
         self._data = None
@@ -109,6 +111,8 @@ class ImpcBalanceSensor(Entity):
             ATTR_DESC: "查询余额为结算系统余额=上月度结转电费+本月缴纳电费。实际电费余额以表计显示为准。"
         }
 
+        _LOGGER.debug(f"ImpcBalanceSensor unique id: {self._attr_unique_id}")
+
     @property
     def name(self) -> str:
         return self._name
@@ -116,7 +120,7 @@ class ImpcBalanceSensor(Entity):
     @property
     def unique_id(self) -> str:
         # 使用 account_number 生成唯一标识符
-        return f"{DOMAIN}_{self._energy_api.account_number}_{ATTR_BALANCE}"
+        return self._attr_unique_id
 
     @property
     def available(self) -> bool:
@@ -161,10 +165,14 @@ class ImpcHistorySensor(Entity):
 
         self._energy_api = energy_api
         self._name = f"历史电费_{energy_api.account_name}"
+        self._attr_unique_id = f"{DOMAIN}_{self._energy_api.account_number}_{ATTR_HISTORY}"
+        self.entity_id = f"sensor.{self._attr_unique_id}"
         self._state = None
         self._available = False
         self._data = None
         self._attrs = None
+
+        _LOGGER.debug(f"ImpcHistorySensor unique id: {self._attr_unique_id}")
 
     @property
     def name(self) -> str:
@@ -173,7 +181,7 @@ class ImpcHistorySensor(Entity):
     @property
     def unique_id(self) -> str:
         # 使用 account_number 生成唯一标识符
-        return f"{DOMAIN}_{self._energy_api.account_number}_{ATTR_HISTORY}"
+        return self._attr_unique_id
 
     @property
     def available(self) -> bool:
@@ -226,10 +234,14 @@ class MdejDailySensor(Entity):
 
         self._mdej_api = mdej_api
         self._name = f"每日电量_{mdej_api.account_name}"
+        self._attr_unique_id = f"{DOMAIN}_{self._mdej_api.account_number}_{ATTR_DAILY}_{ATTR_CONSUMPTION}"
+        self.entity_id = f"sensor.{self._attr_unique_id}"
         self._state = None
         self._available = False
         self._data = None
         self._attrs = None
+
+        _LOGGER.debug(f"MdejDailySensor unique id: {self._attr_unique_id}")
 
     @property
     def name(self) -> str:
@@ -238,7 +250,7 @@ class MdejDailySensor(Entity):
     @property
     def unique_id(self) -> str:
         # 使用 account_number 生成唯一标识符
-        return f"{DOMAIN}_{self._mdej_api.account_number}_{ATTR_DAILY}_{ATTR_CONSUMPTION}"
+        return self._attr_unique_id
 
     @property
     def available(self) -> bool:

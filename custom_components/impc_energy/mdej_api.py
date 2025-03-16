@@ -29,7 +29,7 @@ class MdejAPI(object):
         self._login_payload = None
         self._token = None
 
-    timeout = aiohttp.ClientTimeout(total=60)
+    timeout = aiohttp.ClientTimeout(total=30)
     header = {
         "Host": "mdej.impc.com.cn",
         "qdly": "MDEJ",
@@ -58,6 +58,7 @@ class MdejAPI(object):
     def account_name(self) -> str:
         return self._account_name
 
+    @property
     def account_number(self) -> str:
         return self._account_number
 

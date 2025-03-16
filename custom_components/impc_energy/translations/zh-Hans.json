@@ -12,7 +12,7 @@
       },
       "mdej": {
         "title": "蒙电e家信息",
-        "description": "配置蒙电e家app登录信息",
+        "description": "配置蒙电e家app登录信息\n\n有时会登录失败，重新登录试试",
         "data": {
           "username": "手机/账号/身份证号",
           "password": "密码"
