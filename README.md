@@ -46,6 +46,7 @@
   如果不输入户名, 则集成会尝试使用获取到的户名(多数情况下为住址)作为户名
 
   ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/config_helper.png?raw=true)
++ 如果勾选`是否继续配置蒙电e家app`, 则需要输入app的用户名和密码, 配置蒙电e家后可以获取每日用电量
 
 + 等待配置完成
 
@@ -65,8 +66,9 @@
 
 ## 传感器
 
-插件会为每个家庭添加两个传感器 剩余电费 与 历史
+插件会为每个家庭添加3个传感器 `电费余额`, `历史电费`与`每日电量`
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/entities_created.png?raw=true)
+![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/entities_detail.png?raw=true)
 
 电费余额是结算余额，所以理论上数值一个月才会改变一次(交了电费也可能改变，没有测试)
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221605.png?raw=true)
@@ -75,11 +77,18 @@
 "历史"实体中展示的数据是本期电费
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/history_bill.png?raw=true)
 
+每日电量会展示最近30天的每日用电量
+![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/sensor_daily_consumption.png)
+
+> 有时会有负值是因为接口返回的就是负数, 不知道为什么
+
 ## 卡片配置
 
 利用图表卡片 [apexcharts-card](https://github.com/RomRider/apexcharts-card)
 可以实现如下的效果:
+
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20240409174425.png?raw=true)
+![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/chart_daily_consumption.png?raw=true)
 
 (x轴步长没有生效可能是这个图表库的问题)
 
@@ -169,6 +178,52 @@ cards:
           }
           //console.log("data2", data);
           return data;
+
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: 每日用电
+      show_states: false
+      colorize_states: true
+    graph_span: 30d
+    apex_config:
+      legend:
+        position: top
+      xaxis:
+        stepSize: 1
+        tooltip:
+          enabled: false
+        labels:
+          datetimeFormatter:
+            year: ''
+            month: ''
+            day: d日
+      tooltip:
+        x:
+          format: yyyy年MM月dd日
+    series:
+      - name: 日用电量
+        entity: sensor.impc_energy_011xxxxxx970_daily_consumption
+        color: 4D55CC
+        unit: kW⋅h
+        show:
+          datalabels: false
+          legend_value: false
+        data_generator: |
+          const data=[];
+          const attributes=entity.attributes;
+          for(let item in attributes){
+            if(item&&item.startsWith("20")){
+              //2024-03-01
+              const timeStr=`${item}T00:00:00`;
+              const dataObj=new Date(timeStr);
+              data.push([dataObj.getTime(),attributes[item]]);
+              //data.push([item, attributes[item]]);
+            }
+          }
+          console.log("data3", data);
+          return data;
+
 
 ```
 
