@@ -18,6 +18,7 @@ jobs:
           mkdir -p dist
           cd custom_components
           zip -r ../dist/impc_energy.zip impc_energy
+          cd ..
 
       - name: 提交并推送 zip 文件
         env:
