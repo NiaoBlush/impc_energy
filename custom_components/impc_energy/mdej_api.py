@@ -19,17 +19,39 @@ from .const import (
     ATTR_BALANCE,
     ATTR_BILL,
     ATTR_CURRENT,
+    ATTR_CURRENT_PRICE,
+    ATTR_CURRENT_TIER,
     ATTR_DATE,
     ATTR_CONSUMPTION,
     ATTR_HISTORY,
     ATTR_MONTH,
+    ATTR_PRICE,
+    ATTR_PRICE_CODE,
+    ATTR_PRICE_NAME,
+    ATTR_QUERY_MONTH,
+    ATTR_TIER,
+    ATTR_TIER_NAME,
+    ATTR_TIERS,
+    ATTR_TIER_SPREAD_BILL,
+    ATTR_TOTAL_BILL,
+    ATTR_TOTAL_CONSUMPTION,
 )
 
 _LOGGER = logging.getLogger(__name__)
 tz = datetime.timezone(datetime.timedelta(hours=+8))
 
 
+class MdejAuthError(Exception):
+    """蒙电e家认证失败。"""
+
+
 class MdejAPI(object):
+    TIER_NAME_MAP = {
+        1: "第一阶梯",
+        2: "第二阶梯",
+        3: "第三阶梯",
+    }
+
     def __init__(self, username):
         self._username = username
         self._account_number = None
@@ -96,6 +118,32 @@ class MdejAPI(object):
             "hlwyy-Token": self._token
         }
 
+    @staticmethod
+    def _raise_if_auth_failed(resp_json):
+        """在服务端明确返回认证问题时抛出认证异常。"""
+        if resp_json.get("code") == 2:
+            raise MdejAuthError(f"认证失败, 响应: {resp_json}")
+
+    @staticmethod
+    def _safe_int(value, default=0):
+        """将接口字段安全转换为整数。"""
+        if value in (None, ""):
+            return default
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    @staticmethod
+    def _safe_float(value, default=0.0):
+        """将接口字段安全转换为浮点数。"""
+        if value in (None, ""):
+            return default
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
     async def initialize(self, username=None, pwd=None, login_payload=None, token=None):
         """
         初始化 需要手动调用
@@ -135,6 +183,7 @@ class MdejAPI(object):
                         return None
 
                     resp_json = await response.json(encoding="utf-8")
+                    MdejAPI._raise_if_auth_failed(resp_json)
                     pub_key = resp_json.get("data")
 
                     if not pub_key:
@@ -223,6 +272,7 @@ class MdejAPI(object):
                         raise Exception(f"用户 [{self._username}] 登录失败: HTTP 状态码 {response.status}, 响应: {text}")
 
                     resp_json = await response.json(encoding="utf-8")
+                    MdejAPI._raise_if_auth_failed(resp_json)
 
                     if resp_json.get("code") != 0:
                         _LOGGER.error("登录失败, 用户: [%s], code != 0, 响应: [%s]", self._username, resp_json)
@@ -244,6 +294,15 @@ class MdejAPI(object):
 
     async def get_user(self):
         """获取用户绑定信息，并使用首个返回记录设置户号和地址。"""
+        users = await self.get_users()
+        user_info = users[0]
+        self.set_account_number(user_info[ATTR_ACCOUNT_NUMBER])
+        if user_info.get(ATTR_ACCOUNT_NAME):
+            self.set_account_name(user_info[ATTR_ACCOUNT_NAME])
+        return user_info
+
+    async def get_users(self):
+        """获取用户绑定信息列表。"""
         _LOGGER.info("开始获取用户绑定信息, 用户: [%s]", self._username)
 
         async with aiohttp.ClientSession() as session:
@@ -258,28 +317,29 @@ class MdejAPI(object):
                         raise Exception(f"获取用户信息失败: HTTP 状态码 {response.status}, 响应: {text}")
 
                     resp_json = await response.json(encoding="utf-8")
+                    MdejAPI._raise_if_auth_failed(resp_json)
                     if resp_json.get("code") != 0:
                         raise Exception(f"获取用户信息失败: code != 0, 响应: {resp_json}")
 
-                    user_list = resp_json.get("data") or []
-                    if not user_list:
+                    raw_user_list = resp_json.get("data") or []
+                    if not raw_user_list:
                         raise Exception(f"获取用户信息失败: 未获取到用户数据, 响应: {resp_json}")
 
-                    user_info = user_list[0]
-                    account_number = user_info.get("yhdabh")
-                    account_name = user_info.get("yhmc")
+                    users = []
+                    for user_info in raw_user_list:
+                        account_number = user_info.get("yhdabh")
+                        account_name = user_info.get("yhmc")
+                        if not account_number:
+                            continue
+                        users.append({
+                            ATTR_ACCOUNT_NUMBER: account_number,
+                            ATTR_ACCOUNT_NAME: account_name,
+                        })
 
-                    if not account_number:
-                        raise Exception(f"获取用户信息失败: 未获取到户号, 响应: {resp_json}")
+                    if not users:
+                        raise Exception(f"获取用户信息失败: 未获取到有效户号, 响应: {resp_json}")
 
-                    self.set_account_number(account_number)
-                    if account_name:
-                        self.set_account_name(account_name)
-
-                    return {
-                        ATTR_ACCOUNT_NUMBER: account_number,
-                        ATTR_ACCOUNT_NAME: account_name,
-                    }
+                    return users
 
             except Exception as e:
                 _LOGGER.error("获取用户绑定信息异常, 用户: [%s], 错误: [%s]", self._username, str(e))
@@ -308,6 +368,7 @@ class MdejAPI(object):
                         raise Exception(f"获取电费信息失败: HTTP 状态码 {response.status}, 响应: {text}")
 
                     resp_json = await response.json(encoding="utf-8")
+                    MdejAPI._raise_if_auth_failed(resp_json)
                     if resp_json.get("code") != 0:
                         raise Exception(f"获取电费信息失败: code != 0, 响应: {resp_json}")
 
@@ -315,12 +376,9 @@ class MdejAPI(object):
                     if "syje" not in data:
                         raise Exception(f"获取电费信息失败: 未获取到余额字段, 响应: {resp_json}")
 
-                    if data.get("addr") or data.get("name"):
-                        self.set_account_name(data.get("addr") or data.get("name"))
-
                     return {
                         ATTR_BALANCE: float(data["syje"]),
-                        ATTR_ACCOUNT_NAME: data.get("addr") or data.get("name") or self._account_name,
+                        ATTR_ACCOUNT_NAME: self._account_name,
                     }
 
             except Exception as e:
@@ -351,6 +409,7 @@ class MdejAPI(object):
                         raise Exception(f"获取历史电费电量失败: HTTP 状态码 {response.status}, 响应: {text}")
 
                     resp_json = await response.json(encoding="utf-8")
+                    MdejAPI._raise_if_auth_failed(resp_json)
                     if resp_json.get("code") != 0:
                         raise Exception(f"获取历史电费电量失败: code != 0, 响应: {resp_json}")
 
@@ -413,6 +472,74 @@ class MdejAPI(object):
             ATTR_CURRENT: current
         }
 
+    async def get_tiered_bill(self, year_month: str = None):
+        """获取指定年月的阶梯电费信息。"""
+        if not self._account_number:
+            raise ValueError("必须先设置 account_number，才能获取阶梯电费")
+
+        if year_month is None:
+            today = datetime.datetime.now(tz)
+            first_day_of_this_month = today.replace(day=1)
+            previous_month_day = first_day_of_this_month - datetime.timedelta(days=1)
+            year_month = previous_month_day.strftime("%Y%m")
+
+        params = {
+            "yhdabh": self._account_number,
+            "fxny": year_month,
+        }
+        _LOGGER.info("开始获取阶梯电费, 户号: [%s], 年月: [%s]", self._account_number, year_month)
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(
+                        f"{BASE_APP_API_URL}/hlwyy/business-mdej/jtyd/queryDfFxmxbList",
+                        timeout=MdejAPI.timeout,
+                        params=params,
+                        headers=self.get_header_with_token()
+                ) as response:
+                    if response.status != 200:
+                        text = await response.text()
+                        raise Exception(f"获取阶梯电费失败: HTTP 状态码 {response.status}, 响应: {text}")
+
+                    resp_json = await response.json(encoding="utf-8")
+                    MdejAPI._raise_if_auth_failed(resp_json)
+                    if resp_json.get("code") != 0:
+                        raise Exception(f"获取阶梯电费失败: code != 0, 响应: {resp_json}")
+
+                    data = resp_json.get("data") or {}
+                    ydxx = data.get("ydxx") or []
+                    if not ydxx:
+                        raise Exception(f"获取阶梯电费失败: 未获取到阶梯明细, 响应: {resp_json}")
+
+                    tiers = []
+                    for item in ydxx:
+                        tier = MdejAPI._safe_int(item.get("jtdw"), 0)
+                        tiers.append({
+                            ATTR_TIER: tier,
+                            ATTR_TIER_NAME: MdejAPI.TIER_NAME_MAP.get(tier, f"第{tier}阶梯"),
+                            ATTR_MONTH: item.get("month"),
+                            ATTR_QUERY_MONTH: item.get("fxny") or year_month,
+                            ATTR_CONSUMPTION: MdejAPI._safe_float(item.get("sdl")),
+                            ATTR_PRICE: MdejAPI._safe_float(item.get("zhdj")),
+                            ATTR_BILL: MdejAPI._safe_float(item.get("zdf")),
+                        })
+
+                    return {
+                        ATTR_QUERY_MONTH: year_month,
+                        ATTR_CURRENT_TIER: MdejAPI._safe_int(data.get("dqdw")),
+                        ATTR_CURRENT_PRICE: MdejAPI._safe_float(data.get("dqdj")),
+                        ATTR_TOTAL_CONSUMPTION: MdejAPI._safe_float(data.get("zsdl")),
+                        ATTR_TOTAL_BILL: MdejAPI._safe_float(data.get("hjdf")),
+                        ATTR_TIER_SPREAD_BILL: MdejAPI._safe_float(data.get("jtcedf")),
+                        ATTR_PRICE_NAME: data.get("djmc"),
+                        ATTR_PRICE_CODE: data.get("djdm"),
+                        ATTR_TIERS: tiers,
+                    }
+
+            except Exception as e:
+                _LOGGER.error("获取阶梯电费异常, 户号: [%s], 错误: [%s]", self._account_number, str(e))
+                raise
+
     async def get_daily(self, days=30):
         """
         获取每日用电数据
@@ -442,6 +569,7 @@ class MdejAPI(object):
 
                     # 2. 解析 JSON
                     resp_json = await response.json(encoding="utf-8")
+                    MdejAPI._raise_if_auth_failed(resp_json)
 
                     # 3. 检查返回 code
                     if resp_json.get("code") != 0:

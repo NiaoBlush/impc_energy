@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -18,12 +19,22 @@ from .const import (
     ATTR_BILL,
     ATTR_CONSUMPTION,
     ATTR_CURRENT,
+    ATTR_CURRENT_PRICE,
+    ATTR_CURRENT_TIER,
     ATTR_DAILY,
     ATTR_DATE,
     ATTR_DESC,
     ATTR_HISTORY,
     ATTR_MONTH,
+    ATTR_PRICE_CODE,
+    ATTR_PRICE_NAME,
+    ATTR_QUERY_MONTH,
+    ATTR_TIERS,
     ATTR_TOKEN,
+    ATTR_TIERED_BILL,
+    ATTR_TIER_SPREAD_BILL,
+    ATTR_TOTAL_BILL,
+    ATTR_TOTAL_CONSUMPTION,
     ATTR_USERNAME,
     DOMAIN,
     UNIT_CURRENCY_YUAN,
@@ -53,7 +64,11 @@ async def async_setup_entry(
     app_token = data.get(ATTR_TOKEN)
 
     if not account_number or not app_username or not app_token:
-        _LOGGER.error("Missing required MDEJ configuration in entry data")
+        _LOGGER.warning(
+            "Entry %s is missing required MDEJ configuration. "
+            "This is usually an old config entry and should be re-added.",
+            entry.entry_id,
+        )
         return
 
     mdej_api = MdejAPI(app_username)
@@ -61,7 +76,9 @@ async def async_setup_entry(
     mdej_api.set_account_number(account_number)
     mdej_api.set_account_name(account_name)
 
-    async_add_entities(await get_sensors(mdej_api), update_before_add=True)
+    sensors = await get_sensors(mdej_api)
+    async_add_entities(sensors, update_before_add=True)
+    await _migrate_entity_ids(hass, sensors)
 
 
 async def get_sensors(mdej_api: MdejAPI):
@@ -69,8 +86,34 @@ async def get_sensors(mdej_api: MdejAPI):
     return [
         ImpcBalanceSensor(mdej_api),
         ImpcHistorySensor(mdej_api),
+        ImpcTieredBillSensor(mdej_api),
         MdejDailySensor(mdej_api),
     ]
+
+
+async def _migrate_entity_ids(hass: HomeAssistant, sensors: list[Entity]) -> None:
+    """将旧的基于名称的 entity_id 迁移到固定格式。"""
+    entity_registry = er.async_get(hass)
+
+    for sensor in sensors:
+        unique_id = sensor.unique_id
+        desired_entity_id = sensor.entity_id
+        if not unique_id or not desired_entity_id:
+            continue
+
+        registry_entry = entity_registry.async_get_entity_id("sensor", DOMAIN, unique_id)
+        if not registry_entry or registry_entry == desired_entity_id:
+            continue
+
+        try:
+            entity_registry.async_update_entity(registry_entry, new_entity_id=desired_entity_id)
+            _LOGGER.info("Migrated entity_id from %s to %s", registry_entry, desired_entity_id)
+        except ValueError:
+            _LOGGER.warning(
+                "Unable to migrate entity_id from %s to %s because the target already exists.",
+                registry_entry,
+                desired_entity_id,
+            )
 
 
 class ImpcBalanceSensor(Entity):
@@ -202,6 +245,77 @@ class ImpcHistorySensor(Entity):
         except Exception:
             self._available = False
             _LOGGER.exception("Error retrieving history data from MDEJ.")
+
+
+class ImpcTieredBillSensor(Entity):
+    """阶梯电费。"""
+
+    def __init__(self, mdej_api: MdejAPI):
+        super().__init__()
+
+        self._mdej_api = mdej_api
+        self._name = f"阶梯电费_{mdej_api.account_name}"
+        self._attr_unique_id = f"{DOMAIN}_{self._mdej_api.account_number}_{ATTR_TIERED_BILL}"
+        self.entity_id = f"sensor.{self._attr_unique_id}"
+        self._state = None
+        self._available = False
+        self._attrs: Dict[str, Any] = {
+            ATTR_ACCOUNT_NAME: mdej_api.account_name,
+            ATTR_ACCOUNT_NUMBER: mdej_api.account_number,
+        }
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def unique_id(self) -> str:
+        return self._attr_unique_id
+
+    @property
+    def available(self) -> bool:
+        return self._available
+
+    @property
+    def state(self) -> Optional[float]:
+        return self._state
+
+    @property
+    def icon(self):
+        return "mdi:stairs"
+
+    @property
+    def unit_of_measurement(self):
+        return UNIT_CURRENCY_YUAN
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        return self._attrs
+
+    async def async_update(self):
+        try:
+            tiered_bill = await self._mdej_api.get_tiered_bill()
+            self._state = tiered_bill[ATTR_TOTAL_BILL]
+            self._attrs = {
+                ATTR_ACCOUNT_NAME: self._mdej_api.account_name,
+                ATTR_ACCOUNT_NUMBER: self._mdej_api.account_number,
+                ATTR_QUERY_MONTH: tiered_bill[ATTR_QUERY_MONTH],
+                ATTR_CURRENT_TIER: tiered_bill[ATTR_CURRENT_TIER],
+                ATTR_CURRENT_PRICE: tiered_bill[ATTR_CURRENT_PRICE],
+                ATTR_TOTAL_CONSUMPTION: tiered_bill[ATTR_TOTAL_CONSUMPTION],
+                ATTR_TOTAL_BILL: tiered_bill[ATTR_TOTAL_BILL],
+                ATTR_TIER_SPREAD_BILL: tiered_bill[ATTR_TIER_SPREAD_BILL],
+                ATTR_PRICE_NAME: tiered_bill[ATTR_PRICE_NAME],
+                ATTR_PRICE_CODE: tiered_bill[ATTR_PRICE_CODE],
+                ATTR_TIERS: tiered_bill[ATTR_TIERS],
+            }
+            self._available = True
+        except aiohttp.ClientError:
+            self._available = False
+            _LOGGER.exception("Error retrieving tiered bill data from MDEJ.")
+        except Exception:
+            self._available = False
+            _LOGGER.exception("Error retrieving tiered bill data from MDEJ.")
 
 
 class MdejDailySensor(Entity):

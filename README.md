@@ -5,11 +5,13 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 [![version](https://img.shields.io/github/manifest-json/v/NiaoBlush/impc_energy?filename=custom_components%2Fimpc_energy%2Fmanifest.json)](https://github.com/NiaoBlush/impc_energy/releases/latest)
 
-查询内蒙古住户的电费及历史电量、电费情况
+查询内蒙古住户的电费余额、历史电量电费与每日电量情况
 
 ## 数据说明
 
-数据来自`内蒙古电力公司`公众号与`蒙电e家`app
+当前版本的数据来自`蒙电e家`app 接口。
+
+仓库中仍然保留了早期的 `energy_api.py` 作为历史参考，但公众号相关接口目前已弃用，不再参与实际取数。
 
 根据公众号中的说法
 
@@ -33,7 +35,7 @@
 
 ## 配置
 
-只需知道自己的户号，即可开始配置
+当前版本使用`蒙电e家`账号登录进行配置，不再手动输入户号。
 
 + 进入 设置 -> 设备与服务 -> 添加集成(右下角)
 
@@ -41,16 +43,17 @@
 
   ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/select_integration.png?raw=true)
 
-+ 在弹出的配置向导中输入户号及户名
++ 在弹出的配置向导中输入`蒙电e家`的用户名和密码
 
-  如果不输入户名, 则集成会尝试使用获取到的户名(多数情况下为住址)作为户名
++ 集成会自动调用`getUser`接口，获取该账号下绑定的全部户号，并为每个户号各创建一个配置条目
 
-  ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/config_helper.png?raw=true)
-+ 如果勾选`是否继续配置蒙电e家app`, 则需要输入app的用户名和密码, 配置蒙电e家后可以获取每日用电量
++ 每个条目的名称直接使用接口返回的地址/户名（`yhmc`）
 
 + 等待配置完成
 
 + 系统会自动生成实体名称, 如有需要可自行修改
+
+> 如果后续 `token` 失效，Home Assistant 会提示重新认证，此时重新输入一次密码即可刷新该账号下所有条目的登录凭证。
 
 <details>
 <summary>旧版本迁移指南</summary>
@@ -66,18 +69,32 @@
 
 ## 传感器
 
-插件会为每个家庭添加3个传感器 `电费余额`, `历史电费`与`每日电量`
+插件会为每个户号创建 4 个传感器：`电费余额`、`历史电费`、`阶梯电费` 与 `每日电量`
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/entities_created.png?raw=true)
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/entities_detail.png?raw=true)
 
-电费余额是结算余额，所以理论上数值一个月才会改变一次(交了电费也可能改变，没有测试)
+电费余额是结算余额，所以理论上数值一个月才会改变一次（交了电费也可能改变，没有测试）
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/20230316221605.png?raw=true)
 
-过去12个月的历史数据（用电量与电费）放到了一个传感器里
+过去 12 个月的历史数据（用电量与电费）放到了一个传感器里
 "历史"实体中展示的数据是本期电费
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/history_bill.png?raw=true)
 
-每日电量会展示最近30天的每日用电量
+阶梯电费实体会默认查询**上一个月**的阶梯电费信息。
+
+实体状态(`state`)为该月总电费，额外属性中包含：
+
+- `query_month`：查询年月，格式 `YYYYMM`
+- `current_tier`：当前阶梯档位
+- `current_price`：当前阶梯电价
+- `total_consumption`：总电量
+- `total_bill`：总电费
+- `tier_spread_bill`：阶梯差额电费
+- `price_name`：电价名称
+- `price_code`：电价编码
+- `tiers`：阶梯明细数组，适合卡片和图表直接读取
+
+每日电量会展示最近 30 天的每日用电量
 ![image](https://github.com/NiaoBlush/impc_energy/blob/master/img/sensor_daily_consumption.png)
 
 > 有时会有负值是因为接口返回的就是负数, 不知道为什么
@@ -226,6 +243,63 @@ cards:
 
 
 ```
+
+### 阶梯电费卡片示例
+
+以下示例假设阶梯电费实体为 `sensor.impc_energy_0110072xxxxx_tiered_bill`
+
+```yaml
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |-
+      {% set e = states.sensor.impc_energy_0110072xxxxx_tiered_bill %}
+      ## 阶梯用电一览表
+      查询月份：**{{ e.attributes.query_month[:4] }}/{{ e.attributes.query_month[4:6] }}**
+
+  - type: grid
+    columns: 2
+    square: false
+    cards:
+      - type: markdown
+        content: |-
+          {% set e = states.sensor.impc_energy_0110072xxxxx_tiered_bill %}
+          ### 当前阶梯档位
+          **{{ e.attributes.current_tier }} 档**
+      - type: markdown
+        content: |-
+          {% set e = states.sensor.impc_energy_0110072xxxxx_tiered_bill %}
+          ### 当前阶梯电价
+          **{{ e.attributes.current_price }} 元/度**
+      - type: markdown
+        content: |-
+          {% set e = states.sensor.impc_energy_0110072xxxxx_tiered_bill %}
+          ### 总电量
+          **{{ e.attributes.total_consumption }} kWh**
+      - type: markdown
+        content: |-
+          {% set e = states.sensor.impc_energy_0110072xxxxx_tiered_bill %}
+          ### 总电费
+          **{{ e.state }} 元**
+      - type: markdown
+        content: |-
+          {% set e = states.sensor.impc_energy_0110072xxxxx_tiered_bill %}
+          ### 阶梯差额电费
+          **{{ e.attributes.tier_spread_bill }} 元**
+
+  - type: markdown
+    content: |-
+      {% set e = states.sensor.impc_energy_0110072xxxxx_tiered_bill %}
+      {% set tiers = e.attributes.tiers if e and e.attributes.tiers is defined else [] %}
+
+      ### 阶梯明细
+
+      {% for item in tiers %}
+      - **{{ item.tier_name }}**：{{ item.consumption }} kWh / {{ item.price }} 元/度 / {{ item.bill }} 元
+      {% endfor %}
+```
+
+考虑到 `apexcharts-card` 更适合时间序列，当前版本的阶梯电费示例采用更稳定的摘要卡 + 明细列表方案，而不再强依赖类目柱状图。
 
 ## 其他
 

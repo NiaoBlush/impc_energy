@@ -1,0 +1,29 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "These accounts are already configured.",
+      "initialization_completed": "Initialization completed.",
+      "reauth_successful": "Re-authentication successful."
+    },
+    "error": {
+      "login_failed": "Login failed. Please verify the username and password."
+    },
+    "step": {
+      "user": {
+        "title": "IMPC Energy setup",
+        "description": "This integration uses MDEJ to automatically discover all linked accounts and create one config entry per account.",
+        "data": {
+          "username": "Phone/account/ID",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate MDEJ",
+        "description": "The login credential may have expired. Please enter the password again to refresh the token.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    }
+  }
+}

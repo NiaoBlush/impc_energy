@@ -1,6 +1,7 @@
 import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from .const import (
     DOMAIN,
     ATTR_ACCOUNT_NAME,
@@ -9,6 +10,7 @@ from .const import (
     ATTR_TOKEN,
     ATTR_LOGIN_PAYLOAD
 )
+from .mdej_api import MdejAPI, MdejAuthError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,6 +25,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     app_username = entry.data.get(ATTR_USERNAME)
     app_login_payload = entry.data.get(ATTR_LOGIN_PAYLOAD)
     app_token = entry.data.get(ATTR_TOKEN)
+
+    if app_username and app_token:
+        api = MdejAPI(app_username)
+        api.set_account_number(account_number)
+        api.set_account_name(account_name)
+        try:
+            await api.initialize(token=app_token)
+            await api.get_users()
+        except MdejAuthError as err:
+            raise ConfigEntryAuthFailed("蒙电e家 token 已失效，需要重新认证") from err
+        except Exception as err:
+            raise ConfigEntryNotReady(f"蒙电e家初始化失败: {err}") from err
 
     # 存储配置信息到 hass.data
     if DOMAIN not in hass.data:
@@ -41,8 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         # 通过 async_setup_platforms 来加载平台
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])  # 加载传感器平台
     except Exception as e:
-        _LOGGER.error(f"加载平台时出错: {e}")
-        return False
+        raise ConfigEntryNotReady(f"加载平台时出错: {e}") from e
 
     return True
 

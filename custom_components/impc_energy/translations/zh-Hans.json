@@ -1,13 +1,27 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "这些户号都已经配置过了。",
+      "initialization_completed": "初始化完成。",
+      "reauth_successful": "重新认证成功。"
+    },
+    "error": {
+      "login_failed": "登录失败，请检查用户名和密码后重试。"
+    },
     "step": {
       "user": {
         "title": "内蒙电网 配置向导",
-        "description": "欢迎使用 IMPC Energy！\n\n这个集成会通过蒙电e家自动获取户号、地址、电费余额和历史电量电费。\n\n请在下方输入蒙电e家登录信息，点击提交完成配置。",
+        "description": "欢迎使用 IMPC Energy！\n\n这个集成会通过蒙电e家自动获取账号下的全部户号、地址、电费余额和历史电量电费，并为每个户号创建一个配置条目。\n\n请在下方输入蒙电e家登录信息，点击提交完成配置。",
         "data": {
           "username": "手机/账号/身份证号",
-          "password": "密码",
-          "account_name": "账户名称（留空则会使用 getUser 返回的地址）"
+          "password": "密码"
+        }
+      },
+      "reauth_confirm": {
+        "title": "重新认证蒙电e家",
+        "description": "登录凭证可能已失效，请重新输入密码以刷新 token。",
+        "data": {
+          "password": "密码"
         }
       }
     }
