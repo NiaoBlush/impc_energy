@@ -156,7 +156,7 @@ class MdejAPI(object):
             "dlkl": username,
             "dlmm": pwd,
             "qdly": "APP",
-            "version": "3.0.3"
+            "version": "3.1.3"
         }
         plaintext = json.dumps(data_to_encrypt).encode('utf-8')
 
