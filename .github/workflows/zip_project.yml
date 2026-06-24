@@ -24,7 +24,7 @@ jobs:
 
       - name: 记录源码 commit hash
         run: |
-          echo "SOURCE_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "SOURCE_COMMIT=$(git rev-parse --short-8 HEAD)" >> $GITHUB_ENV
           echo "SOURCE_COMMIT_FULL=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: 检查当前检出的提交
