@@ -37,11 +37,6 @@ jobs:
           zip -r ../dist/impc_energy.zip impc_energy
           cd ..
 
-      - name: 检查 zip 包内容
-        run: |
-          ls -lh dist/impc_energy.zip
-          unzip -l dist/impc_energy.zip | tail -80
-
       - name: 提交并推送 zip 文件
         uses: EndBug/add-and-commit@v9
         with:
