@@ -4,7 +4,13 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - 'dist/**'
+
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   zip_folder:
@@ -12,18 +18,31 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 检查当前检出的提交
+        run: |
+          echo "github.ref=${{ github.ref }}"
+          echo "github.sha=${{ github.sha }}"
+          git rev-parse HEAD
+          git log -1 --oneline
 
       - name: 打包 custom_components/impc_energy 文件夹
         run: |
+          rm -rf dist
           mkdir -p dist
           cd custom_components
           zip -r ../dist/impc_energy.zip impc_energy
           cd ..
 
+      - name: 检查 zip 包内容
+        run: |
+          ls -lh dist/impc_energy.zip
+          unzip -l dist/impc_energy.zip | tail -80
+
       - name: 提交并推送 zip 文件
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         uses: EndBug/add-and-commit@v9
         with:
           author_name: 'GitHub Actions'
