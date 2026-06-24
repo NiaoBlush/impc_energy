@@ -82,6 +82,8 @@
 
 阶梯电费实体会默认查询**上一个月**的阶梯电费信息。
 
+![阶梯电费示意图](https://github.com/NiaoBlush/impc_energy/blob/master/img/tiered_bill.png?raw=true)
+
 实体状态(`state`)为该月总电费，额外属性中包含：
 
 - `query_month`：查询年月，格式 `YYYYMM`

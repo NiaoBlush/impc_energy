@@ -94,6 +94,8 @@ The state of the `history` entity is the bill of the current period.
 
 The `tiered bill` sensor queries **the previous month** by default.
 
+![Tiered bill example](https://github.com/NiaoBlush/impc_energy/blob/master/img/tiered_bill.png?raw=true)
+
 Its entity state is the total bill of that month. Extra attributes include:
 
 + `query_month`: query month in `YYYYMM`
