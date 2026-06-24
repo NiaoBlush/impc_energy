@@ -22,11 +22,17 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: 记录源码 commit hash
+        run: |
+          echo "SOURCE_COMMIT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "SOURCE_COMMIT_FULL=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
       - name: 检查当前检出的提交
         run: |
           echo "github.ref=${{ github.ref }}"
           echo "github.sha=${{ github.sha }}"
-          git rev-parse HEAD
+          echo "SOURCE_COMMIT=${{ env.SOURCE_COMMIT }}"
+          echo "SOURCE_COMMIT_FULL=${{ env.SOURCE_COMMIT_FULL }}"
           git log -1 --oneline
 
       - name: 打包 custom_components/impc_energy 文件夹内容
@@ -46,5 +52,5 @@ jobs:
         with:
           author_name: 'GitHub Actions'
           author_email: 'actions@github.com'
-          message: '添加 dist/impc_energy.zip'
+          message: '添加 dist/impc_energy.zip - source ${{ env.SOURCE_COMMIT }}'
           add: 'dist/impc_energy.zip'
