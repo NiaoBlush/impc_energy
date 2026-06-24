@@ -1,4 +1,4 @@
-# 蒙电e家api
+"""蒙电e家 API。"""
 
 import datetime
 import aiohttp
@@ -6,14 +6,23 @@ import asyncio
 import logging
 
 from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES
 from Crypto.Cipher import PKCS1_v1_5
+from Crypto.Util.Padding import pad
 import base64
 import json
 
 from .const import (
     BASE_APP_API_URL,
+    ATTR_ACCOUNT_NAME,
+    ATTR_ACCOUNT_NUMBER,
+    ATTR_BALANCE,
+    ATTR_BILL,
+    ATTR_CURRENT,
     ATTR_DATE,
-    ATTR_CONSUMPTION
+    ATTR_CONSUMPTION,
+    ATTR_HISTORY,
+    ATTR_MONTH,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,6 +34,7 @@ class MdejAPI(object):
         self._username = username
         self._account_number = None
         self._account_name = None
+        self._encrypted_account_number = None
         self._public_key = None
         self._login_payload = None
         self._token = None
@@ -62,12 +72,17 @@ class MdejAPI(object):
     def account_number(self) -> str:
         return self._account_number
 
+    @property
+    def encrypted_account_number(self) -> str:
+        return self._encrypted_account_number
+
     def set_account_number(self, account_number):
         """
         设置户号
         部分接口需要户号参数
         """
         self._account_number = account_number
+        self._encrypted_account_number = self.encrypt_account_number(account_number)
 
     def set_account_name(self, account_name):
         self._account_name = account_name
@@ -89,11 +104,11 @@ class MdejAPI(object):
         使用login_payload初始化时必报错, 原因未知
         :return:
         """
-        await self._get_public_key()
         if token:
             _LOGGER.debug("使用token初始化")
             self._token = token
         else:
+            await self._get_public_key()
             if login_payload is None:
                 if username is None or pwd is None:
                     raise ValueError("必须提供用户名和密码，或者直接提供 payload")
@@ -170,6 +185,14 @@ class MdejAPI(object):
 
         return encrypted_base64_str
 
+    @staticmethod
+    def encrypt_account_number(account_number: str) -> str:
+        """使用 AES-128-ECB-PKCS7 加密户号并返回 Base64。"""
+        key = b"nmdlyx1234567890"
+        cipher = AES.new(key, AES.MODE_ECB)
+        encrypted_bytes = cipher.encrypt(pad(account_number.encode("utf-8"), AES.block_size))
+        return base64.b64encode(encrypted_bytes).decode("utf-8")
+
     async def get_token(self, payload):
         """
         登录以获取 token
@@ -218,6 +241,177 @@ class MdejAPI(object):
             except Exception as e:
                 _LOGGER.error("登录请求异常, 用户: [%s], 错误: [%s]", self._username, str(e))
                 raise
+
+    async def get_user(self):
+        """获取用户绑定信息，并使用首个返回记录设置户号和地址。"""
+        _LOGGER.info("开始获取用户绑定信息, 用户: [%s]", self._username)
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(
+                        f"{BASE_APP_API_URL}/hlwyy/business-ggfw/communal/getUser",
+                        timeout=MdejAPI.timeout,
+                        headers=self.get_header_with_token()
+                ) as response:
+                    if response.status != 200:
+                        text = await response.text()
+                        raise Exception(f"获取用户信息失败: HTTP 状态码 {response.status}, 响应: {text}")
+
+                    resp_json = await response.json(encoding="utf-8")
+                    if resp_json.get("code") != 0:
+                        raise Exception(f"获取用户信息失败: code != 0, 响应: {resp_json}")
+
+                    user_list = resp_json.get("data") or []
+                    if not user_list:
+                        raise Exception(f"获取用户信息失败: 未获取到用户数据, 响应: {resp_json}")
+
+                    user_info = user_list[0]
+                    account_number = user_info.get("yhdabh")
+                    account_name = user_info.get("yhmc")
+
+                    if not account_number:
+                        raise Exception(f"获取用户信息失败: 未获取到户号, 响应: {resp_json}")
+
+                    self.set_account_number(account_number)
+                    if account_name:
+                        self.set_account_name(account_name)
+
+                    return {
+                        ATTR_ACCOUNT_NUMBER: account_number,
+                        ATTR_ACCOUNT_NAME: account_name,
+                    }
+
+            except Exception as e:
+                _LOGGER.error("获取用户绑定信息异常, 用户: [%s], 错误: [%s]", self._username, str(e))
+                raise
+
+    async def get_balance_info(self):
+        """获取电费余额信息。"""
+        if not self._encrypted_account_number:
+            raise ValueError("必须先设置 account_number，才能获取电费信息")
+
+        params = {
+            "yhdabh": self._encrypted_account_number,
+        }
+        _LOGGER.info("开始获取电费信息, 户号: [%s]", self._account_number)
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(
+                        f"{BASE_APP_API_URL}/hlwyy/business-jffw/znjf/queryDfInfoNew_new",
+                        timeout=MdejAPI.timeout,
+                        params=params,
+                        headers=self.get_header_with_token()
+                ) as response:
+                    if response.status != 200:
+                        text = await response.text()
+                        raise Exception(f"获取电费信息失败: HTTP 状态码 {response.status}, 响应: {text}")
+
+                    resp_json = await response.json(encoding="utf-8")
+                    if resp_json.get("code") != 0:
+                        raise Exception(f"获取电费信息失败: code != 0, 响应: {resp_json}")
+
+                    data = resp_json.get("data") or {}
+                    if "syje" not in data:
+                        raise Exception(f"获取电费信息失败: 未获取到余额字段, 响应: {resp_json}")
+
+                    if data.get("addr") or data.get("name"):
+                        self.set_account_name(data.get("addr") or data.get("name"))
+
+                    return {
+                        ATTR_BALANCE: float(data["syje"]),
+                        ATTR_ACCOUNT_NAME: data.get("addr") or data.get("name") or self._account_name,
+                    }
+
+            except Exception as e:
+                _LOGGER.error("获取电费信息异常, 户号: [%s], 错误: [%s]", self._account_number, str(e))
+                raise
+
+    async def get_history(self, year: int):
+        """获取指定年份的电量电费列表。"""
+        if not self._account_number:
+            raise ValueError("必须先设置 account_number，才能获取历史电费电量")
+
+        params = {
+            "yhdabh": self._account_number,
+            "fxny": year,
+        }
+        _LOGGER.info("开始获取历史电费电量, 户号: [%s], 年份: [%s]", self._account_number, year)
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(
+                        f"{BASE_APP_API_URL}/hlwyy/business-jffw/dldf/zztList",
+                        timeout=MdejAPI.timeout,
+                        params=params,
+                        headers=self.get_header_with_token()
+                ) as response:
+                    if response.status != 200:
+                        text = await response.text()
+                        raise Exception(f"获取历史电费电量失败: HTTP 状态码 {response.status}, 响应: {text}")
+
+                    resp_json = await response.json(encoding="utf-8")
+                    if resp_json.get("code") != 0:
+                        raise Exception(f"获取历史电费电量失败: code != 0, 响应: {resp_json}")
+
+                    data = resp_json.get("data")
+                    if not data:
+                        raise Exception(f"获取历史电费电量失败: 未获取到数据, 响应: {resp_json}")
+
+                    return data
+
+            except Exception as e:
+                _LOGGER.error("获取历史电费电量异常, 户号: [%s], 错误: [%s]", self._account_number, str(e))
+                raise
+
+    async def get_history_data(self):
+        """组合当前周期前 12 个月历史数据与本期数据。"""
+        now = datetime.datetime.now(tz)
+        this_year = now.year
+        this_month = now.month
+
+        data_list = []
+        last_year_data = await self.get_history(this_year - 1)
+
+        for i in range(this_month, 13):
+            month_str = "%d%02d" % (this_year - 1, i)
+            data_list.append({
+                ATTR_MONTH: month_str,
+                ATTR_BILL: last_year_data["df"][i - 1],
+                ATTR_CONSUMPTION: last_year_data["dl"][i - 1]
+            })
+
+        await asyncio.sleep(1)
+
+        if this_month > 1:
+            this_year_data = await self.get_history(this_year)
+            for i in range(1, this_month):
+                month_str = "%d%02d" % (this_year, i)
+                data_list.append({
+                    ATTR_MONTH: month_str,
+                    ATTR_BILL: this_year_data["df"][i - 1],
+                    ATTR_CONSUMPTION: this_year_data["dl"][i - 1]
+                })
+        else:
+            this_year_data = None
+
+        if this_month == 1:
+            current = {
+                ATTR_MONTH: ATTR_CURRENT,
+                ATTR_BILL: last_year_data["bqdf"],
+                ATTR_CONSUMPTION: last_year_data["bqdl"]
+            }
+        else:
+            current = {
+                ATTR_MONTH: ATTR_CURRENT,
+                ATTR_BILL: this_year_data["bqdf"],
+                ATTR_CONSUMPTION: this_year_data["bqdl"]
+            }
+
+        return {
+            ATTR_HISTORY: data_list,
+            ATTR_CURRENT: current
+        }
 
     async def get_daily(self, days=30):
         """

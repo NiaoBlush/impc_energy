@@ -6,7 +6,6 @@ from .const import (
     ATTR_ACCOUNT_NAME,
     ATTR_ACCOUNT_NUMBER,
     ATTR_USERNAME,
-    ATTR_PASSWORD,
     ATTR_TOKEN,
     ATTR_LOGIN_PAYLOAD
 )

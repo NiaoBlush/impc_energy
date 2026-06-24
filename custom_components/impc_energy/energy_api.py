@@ -1,3 +1,9 @@
+"""已弃用的公众号接口实现。
+
+这些接口此前用于获取余额、地址、历史电费电量，但当前已不可用。
+文件保留仅用于历史逻辑参考，运行时数据获取已迁移到 `mdej_api.py`。
+"""
+
 import datetime
 import asyncio
 
@@ -22,6 +28,8 @@ tz = datetime.timezone(datetime.timedelta(hours=+8))
 
 
 class EnergyAPI(object):
+    """已弃用：旧版公众号接口封装，仅保留作参考。"""
+
     def __init__(self, session: aiohttp.ClientSession, account_number):
         self._account_number = account_number
         self._account_name = None
@@ -49,6 +57,8 @@ class EnergyAPI(object):
 
     async def get_basic(self):
         """
+        已弃用。
+
         获取基本信息 (dldfList)
         包括zmye及账户名(未脱敏住址)
 
@@ -88,6 +98,8 @@ class EnergyAPI(object):
 
     async def get_history(self, year: int):
         """
+        已弃用。
+
         获取电量电费列表
         :param year: 某年
         res:
@@ -166,7 +178,7 @@ class EnergyAPI(object):
             _LOGGER.error("获取历史数据错误, res: [{}]".format(data))
 
     async def get_history_data(self):
-
+        """已弃用。组合旧版历史电费电量数据。"""
         now = datetime.datetime.now(tz)
         this_year = now.year
         this_month = now.month
@@ -218,6 +230,8 @@ class EnergyAPI(object):
 
     async def get_basic_new(self):
         """
+        已弃用。
+
         获取基本信息 (queryDfInfoNew)
         包含syje与脱敏地址
 
