@@ -29,13 +29,17 @@ jobs:
           git rev-parse HEAD
           git log -1 --oneline
 
-      - name: 打包 custom_components/impc_energy 文件夹
+      - name: 打包 custom_components/impc_energy 文件夹内容
         run: |
           rm -rf dist
           mkdir -p dist
-          cd custom_components
-          zip -r ../dist/impc_energy.zip impc_energy
-          cd ..
+          cd custom_components/impc_energy
+          zip -r ../../dist/impc_energy.zip .
+
+      - name: 检查 zip 包内容
+        run: |
+          ls -lh dist/impc_energy.zip
+          unzip -l dist/impc_energy.zip | head -80
 
       - name: 提交并推送 zip 文件
         uses: EndBug/add-and-commit@v9
